@@ -49,6 +49,7 @@ from comicbookinfo import ComicBookInfo
 from comet import CoMet
 from genericmetadata import GenericMetadata, PageType
 from filenameparser import FileNameParser
+from PyPDF2 import PdfFileReader
 
 class MetaDataStyle:
 	CBI = 0
@@ -508,13 +509,34 @@ class UnknownArchiver:
 	def getArchiveFilenameList( self ):
 		return []
 
+class PdfArchiver:
+	def __init__( self, path ):
+		self.path = path
+
+	def getArchiveComment( self ):
+		return ""
+	def setArchiveComment( self, comment ):
+		return False
+	def readArchiveFile( self, page_num ):		
+		return subprocess.check_output(['mudraw', '-o','-', self.path, str(int(os.path.basename(page_num)[:-4]))])
+	def writeArchiveFile( self, archive_file, data ):
+		return False
+	def removeArchiveFile( self, archive_file ):
+		return False
+	def getArchiveFilenameList( self ):	
+		out = []
+		pdf = PdfFileReader(open(self.path, 'rb'))
+		for page in range(1, pdf.getNumPages() + 1):
+			out.append("/%04d.jpg" % (page))
+		return out
+
 #------------------------------------------------------------------
 class ComicArchive:
 
 	logo_data = None
 
 	class ArchiveType:
-		Zip, Rar, Folder, Unknown = range(4)
+		Zip, Rar, Folder, Pdf, Unknown = range(5)
     
 	def __init__( self, path, rar_exe_path=None, default_image_path=None ):
 		self.path = path
@@ -547,6 +569,9 @@ class ComicArchive:
 			elif self.rarTest(): 
 				self.archive_type =  self.ArchiveType.Rar
 				self.archiver = RarArchiver( self.path, rar_exe_path=self.rar_exe_path )
+			elif os.path.basename(self.path)[-3:] == 'pdf':
+				self.archive_type = self.ArchiveType.Pdf
+				self.archiver = PdfArchiver(self.path)
 
 		if ComicArchive.logo_data is None:
 			#fname = ComicTaggerSettings.getGraphic('nocover.png')
@@ -591,7 +616,8 @@ class ComicArchive:
 		
 	def isRar( self ):
 		return self.archive_type ==  self.ArchiveType.Rar
-	
+	def isPdf(self):
+		return self.archive_type ==  self.ArchiveType.Pdf
 	def isFolder( self ):
 		return self.archive_type ==  self.ArchiveType.Folder
 
@@ -624,7 +650,7 @@ class ComicArchive:
 		ext = os.path.splitext(self.path)[1].lower()
 
 		if ( 
-		      ( self.isZip() or  self.isRar() ) #or self.isFolder() )
+		      ( self.isZip() or  self.isRar() or self.isPdf()) #or self.isFolder() )
 		      and
 		      ( self.getNumberOfPages() > 0)
 
