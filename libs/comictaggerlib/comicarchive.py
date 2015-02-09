@@ -41,8 +41,8 @@ except ImportError:
     pil_available = False
 
 sys.path.insert(0, os.path.abspath(".") )
-import UnRAR2
-from UnRAR2.rar_exceptions import *
+#import UnRAR2
+#from UnRAR2.rar_exceptions import *
 
 #from settings import ComicTaggerSettings
 from comicinfoxml import ComicInfoXml

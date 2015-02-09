@@ -161,8 +161,8 @@ class Monitor():
             self.remove_count += 1
 
     def getComicMetadata(self, path):
-        
-        #print time.time() - start_time, "seconds"
+        #start_time = time.time()
+
 
         ca = ComicArchive(path,  default_image_path=AppFolders.imagePath("default.jpg"))
         
@@ -196,7 +196,7 @@ class Monitor():
             #md5.update(open(md.path, 'r').read())
             #md.hash = unicode(md5.hexdigest())
             #logging.debug("after hash")
-            
+            #print "getComicMetadata: ", time.time() - start_time, "seconds"
             return md
         return None
                 
