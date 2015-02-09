@@ -26,8 +26,11 @@ import tempfile
 import subprocess
 import platform
 import locale
+import shutil
+
 from natsort import natsorted
 from unrar import rarfile
+
 
 if platform.system() == "Windows":
     import _subprocess
@@ -311,8 +314,9 @@ class RarArchiver:
                 rarc.extract(archive_file, tmp_folder)
                 data = open(tmp_file).read()
                 entries = [(rarc.getinfo(archive_file), data)]
-                os.remove(tmp_file)
-                os.rmdir(tmp_folder)
+
+
+                shutil.rmtree(tmp_folder, ignore_errors=True)
 
                 #entries = rarc.read_files( archive_file )
 
