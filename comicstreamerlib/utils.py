@@ -28,6 +28,11 @@ import codecs
 import calendar
 import hashlib
 import time
+from PIL import Image
+from PIL import WebPImagePlugin
+import StringIO
+from comicstreamerlib.folders import AppFolders
+import imghdr
 
 from datetime import datetime, timedelta
 	
@@ -115,5 +120,61 @@ def alert(title, msg):
 def collapseRepeats(string, ch):
 	return re.sub("/"+ ch + "*", ch, string) 
 
+def resizeImage(max, image_data):
+    # disable WebP for now, due a memory leak in python library
+    imtype = imghdr.what(StringIO.StringIO(image_data))
+    if imtype == "webp":
+        with open(AppFolders.imagePath("default.jpg"), 'rb') as fd:
+            image_data = fd.read()
 
+    im = Image.open(StringIO.StringIO(image_data)).convert('RGB')
+    w,h = im.size
+    if max < h:
+        im.thumbnail((w,max), Image.ANTIALIAS)
+        output = StringIO.StringIO()
+        im.save(output, format="JPEG")
+        return output.getvalue()
+    else:
+        return image_data
 
+# optimized thumbnail generation
+# taken from http://united-coders.com/christian-harms/image-resizing-tips-every-coder-should-know/
+def resize(img, box, out, fit=False):
+    '''Downsample the image.
+    @param img: Image -  an Image-object
+    @param box: tuple(x, y) - the bounding box of the result image
+    @param fix: boolean - crop the image to fill the box
+    @param out: file-like-object - save the image into the output stream
+    '''
+
+    if type(img) != Image and type(img) == str:
+        img = Image.open(StringIO.StringIO(img))
+
+    #preresize image with factor 2, 4, 8 and fast algorithm
+    factor = 1
+    while img.size[0]/factor > 2*box[0] and img.size[1]*2/factor > 2*box[1]:
+        factor *=2
+    if factor > 1:
+        img.thumbnail((img.size[0]/factor, img.size[1]/factor), Image.NEAREST)
+
+    #calculate the cropping box and get the cropped part
+    if fit:
+        x1 = y1 = 0
+        x2, y2 = img.size
+        wRatio = 1.0 * x2/box[0]
+        hRatio = 1.0 * y2/box[1]
+        if hRatio > wRatio:
+            y1 = int(y2/2-box[1]*wRatio/2)
+            y2 = int(y2/2+box[1]*wRatio/2)
+        else:
+            x1 = int(x2/2-box[0]*hRatio/2)
+            x2 = int(x2/2+box[0]*hRatio/2)
+        img = img.crop((x1,y1,x2,y2))
+
+    #Resize the image with best quality algorithm ANTI-ALIAS
+    img.thumbnail(box, Image.ANTIALIAS)
+
+    img = img.convert('RGB')
+
+    #save it into a file-like object
+    img.save(out, "JPEG", quality=65)

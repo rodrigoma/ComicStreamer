@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-import imghdr
-
 import sys
 import os
 import hashlib
@@ -18,10 +16,7 @@ import watchdog
 from libs.comictaggerlib.comicarchive import *
 from libs.comictaggerlib.issuestring import *
 import utils
-from PIL import Image
-from PIL import WebPImagePlugin
-import StringIO
-from comicstreamerlib.folders import AppFolders
+
 from database import *
 
 class  MonitorEventHandler(watchdog.events.FileSystemEventHandler):
@@ -198,8 +193,9 @@ class Monitor():
             #thumbnail generation
             image_data = ca.getPage(0)
             #now resize it
-            thumbail_data = self.resizeImage(200, image_data)
-            md.thumbnail = thumbail_data
+            thumb = StringIO.StringIO()
+            utils.resize(image_data, (200, 200), thumb)
+            md.thumbnail = thumb.getvalue()
 
 
             #logging.debug("before hash")
@@ -210,24 +206,6 @@ class Monitor():
             #print "getComicMetadata: ", time.time() - start_time, "seconds"
             return md
         return None
-                
-    # TODO: duplicated from server.py for now
-    def resizeImage(self, max, image_data):
-        # disable WebP for now, due a memory leak in python library
-        imtype = imghdr.what(StringIO.StringIO(image_data))
-        if imtype == "webp":
-            with open(AppFolders.imagePath("default.jpg"), 'rb') as fd:
-                image_data = fd.read()
-
-        im = Image.open(StringIO.StringIO(image_data)).convert('RGB')
-        w,h = im.size
-        if max < h:
-            im.thumbnail((w,max), Image.ANTIALIAS)
-            output = StringIO.StringIO()
-            im.save(output, format="JPEG")
-            return output.getvalue()
-        else:
-            return image_data
 
     def removeComic(self, comic):
         deleted = DeletedComic()

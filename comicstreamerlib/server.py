@@ -367,23 +367,6 @@ class ImageAPIHandler(GenericAPIHandler):
                 image_data = fd.read()
             
         return image_data
-    
-    def resizeImage(self, max, image_data):
-        # disable WebP for now, due a memory leak in python library
-        imtype = imghdr.what(StringIO.StringIO(image_data))
-        if imtype == "webp":
-            with open(AppFolders.imagePath("default.jpg"), 'rb') as fd:
-                image_data = fd.read()
-        
-        im = Image.open(StringIO.StringIO(image_data))
-        w,h = im.size
-        if max < h:
-            im.thumbnail((w,max), Image.ANTIALIAS)
-            output = StringIO.StringIO()
-            im.save(output, format="JPEG")
-            return output.getvalue()
-        else:
-            return image_data
             
 class VersionAPIHandler(JSONResultAPIHandler):
     def get(self):
@@ -554,7 +537,7 @@ class ComicPageAPIHandler(ImageAPIHandler):
         if max_height is not None:
             try:
                 max_h = int(max_height)
-                image_data = self.resizeImage(max_h, image_data)
+                image_data = utils.resizeImage(max_h, image_data)
             except Exception as e:
                 logging.error(e)
                 pass

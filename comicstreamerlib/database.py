@@ -27,7 +27,7 @@ from sqlalchemy.orm.properties import \
                         RelationshipProperty
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
-SCHEMA_VERSION=2
+SCHEMA_VERSION=3
 
 Base = declarative_base()
 Session = sessionmaker()
