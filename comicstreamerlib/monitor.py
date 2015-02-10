@@ -219,7 +219,7 @@ class Monitor():
             with open(AppFolders.imagePath("default.jpg"), 'rb') as fd:
                 image_data = fd.read()
 
-        im = Image.open(StringIO.StringIO(image_data))
+        im = Image.open(StringIO.StringIO(image_data)).convert('RGB')
         w,h = im.size
         if max < h:
             im.thumbnail((w,max), Image.ANTIALIAS)
