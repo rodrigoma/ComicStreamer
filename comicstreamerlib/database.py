@@ -15,7 +15,7 @@ from comicstreamerlib.folders import AppFolders
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, Float, String, DateTime, Table, ForeignKey
+from sqlalchemy import Column, Integer, Float, String, DateTime, LargeBinary, Table, ForeignKey
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy import create_engine, func
 from sqlalchemy.ext.declarative import DeclarativeMeta
@@ -75,7 +75,8 @@ def alchemy_encoder():
                                                     and x != "roles" 
                                                     and x != "issue_num" 
                                                     and x != "file" 
-                                                    and x != "folder" 
+                                                    and x != "folder"
+                                                    and x != "thumbnail"
                                                     ]:
                     value = obj.__getattribute__(field)
                     if (isinstance(value, date)): 
@@ -178,7 +179,7 @@ class Comic(Base):
     deleted_ts = Column(DateTime)
     lastread_ts = Column(DateTime)
     lastread_page = Column(Integer)
-    
+    thumbnail = Column(LargeBinary)
     
     #hash = Column(String)
     added_ts = Column(DateTime, default=datetime.utcnow)  # when the comic was added to the DB

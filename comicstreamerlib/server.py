@@ -565,12 +565,17 @@ class ComicPageAPIHandler(ImageAPIHandler):
 class ThumbnailAPIHandler(ImageAPIHandler):
     def get(self, comic_id):
         self.validateAPIKey()
-        image_data = self.getImageData(comic_id, 0)
-        #now resize it
-        thumbail_data = self.resizeImage(200, image_data)
-    
-        self.setContentType(image_data)
-        self.write(thumbail_data)
+        session = self.application.dm.Session()
+        comic = session.query(Comic).get(comic_id)
+        if comic.thumbnail != None:
+            self.setContentType('image/jpg')
+            self.write(comic.thumbnail)
+        else:
+            default_img_file = AppFolders.imagePath("default.jpg")
+            with open(default_img_file, 'rb') as fd:
+                image_data = fd.read()
+            self.setContentType('image/jpg')
+            self.write(image_data)
 
 class FileAPIHandler(GenericAPIHandler):
     def get(self, comic_id):

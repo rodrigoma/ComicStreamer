@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import imghdr
 
 import sys
 import os
@@ -17,7 +18,10 @@ import watchdog
 from libs.comictaggerlib.comicarchive import *
 from libs.comictaggerlib.issuestring import *
 import utils
-
+from PIL import Image
+from PIL import WebPImagePlugin
+import StringIO
+from comicstreamerlib.folders import AppFolders
 from database import *
 
 class  MonitorEventHandler(watchdog.events.FileSystemEventHandler):
@@ -190,7 +194,14 @@ class Monitor():
             md.mod_ts = datetime.utcfromtimestamp(os.path.getmtime(ca.path))
             md.filesize = os.path.getsize(md.path)
             md.hash = ""
-            
+
+            #thumbnail generation
+            image_data = ca.getPage(0)
+            #now resize it
+            thumbail_data = self.resizeImage(200, image_data)
+            md.thumbnail = thumbail_data
+
+
             #logging.debug("before hash")
             #md5 = hashlib.md5()
             #md5.update(open(md.path, 'r').read())
@@ -200,8 +211,24 @@ class Monitor():
             return md
         return None
                 
-                
-        
+    # TODO: duplicated from server.py for now
+    def resizeImage(self, max, image_data):
+        # disable WebP for now, due a memory leak in python library
+        imtype = imghdr.what(StringIO.StringIO(image_data))
+        if imtype == "webp":
+            with open(AppFolders.imagePath("default.jpg"), 'rb') as fd:
+                image_data = fd.read()
+
+        im = Image.open(StringIO.StringIO(image_data))
+        w,h = im.size
+        if max < h:
+            im.thumbnail((w,max), Image.ANTIALIAS)
+            output = StringIO.StringIO()
+            im.save(output, format="JPEG")
+            return output.getvalue()
+        else:
+            return image_data
+
     def removeComic(self, comic):
         deleted = DeletedComic()
         deleted.comic_id = comic.id
@@ -233,7 +260,8 @@ class Monitor():
         comic.mod_ts = md.mod_ts
         comic.hash = md.hash
         comic.filesize = md.filesize
-        
+        comic.thumbnail = md.thumbnail
+
         if not md.isEmpty:
             if md.series is not None:
                 comic.series   = unicode(md.series)
