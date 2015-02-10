@@ -38,6 +38,7 @@ from unrar import constants
 
 class OpenableRarFile(rarfile.RarFile):
     def open(self, member):
+        #print "opening %s..." % member
         # based on https://github.com/matiasb/python-unrar/pull/4/files
         res = []
         if isinstance(member, rarfile.RarInfo):
@@ -55,7 +56,8 @@ class OpenableRarFile(rarfile.RarFile):
         try:
             rarinfo = self._read_header(handle)
             while rarinfo is not None:
-                if rarinfo.filename == unicode(member):
+                #print "checking rar archive %s against %s" % (rarinfo.filename, member)
+                if rarinfo.filename == member:
                     self._process_current(handle, constants.RAR_TEST)
                     found = True
                 else:
@@ -338,7 +340,7 @@ class RarArchiver:
 
         # Make sure to escape brackets, since some funky stuff is going on
         # underneath with "fnmatch"
-        archive_file = archive_file.replace("[", '[[]')
+        #archive_file = archive_file.replace("[", '[[]')
         entries = []
 
         rarc = self.getRARObj()
