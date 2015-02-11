@@ -138,6 +138,12 @@ def resizeImage(max, image_data):
         return image_data
 
 # optimized thumbnail generation
+# simple comparison with resizeImage:
+# >>> start = time.time(); foo = [utils.resizeImage(200, f) for i in range(1,100)]; print time.time() - start;
+# 10.9432790279
+# >>> start = time.time(); foo = [utils.resize(f, (200,200), StringIO.StringIO()) for i in range(1,100)]; print time.time() - start;
+# 2.90805196762
+#
 # taken from http://united-coders.com/christian-harms/image-resizing-tips-every-coder-should-know/
 def resize(img, box, out, fit=False):
     '''Downsample the image.
