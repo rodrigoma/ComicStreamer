@@ -13,8 +13,8 @@ from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler
 import watchdog
 
-from libs.comictaggerlib.comicarchive import *
-from libs.comictaggerlib.issuestring import *
+from comicapi.comicarchive import *
+from comicapi.issuestring import *
 import utils
 
 from database import *

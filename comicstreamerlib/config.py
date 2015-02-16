@@ -31,7 +31,7 @@ from configobj import ConfigObj
 from validate import Validator
 
 from options import Options
-from libs.comictaggerlib.utils import which, addtopath
+from comicapi.utils import which, addtopath
 from comicstreamerlib.folders import AppFolders
 
 class ComicStreamerConfig(ConfigObj):

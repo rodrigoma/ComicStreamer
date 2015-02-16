@@ -50,7 +50,7 @@ import socket
 import webbrowser
 import time
 
-from libs.comictaggerlib.comicarchive import *
+from comicapi.comicarchive import *
 
 import csversion
 import utils
