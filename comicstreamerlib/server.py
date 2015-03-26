@@ -62,6 +62,8 @@ from options import Options
 from bonjour import BonjourThread
 from bookmarker import Bookmarker
 
+from library import Library
+
 # add webp test to imghdr in case it isn't there already
 def my_test_webp(h, f):
     if h.startswith(b'RIFF') and h[8:12] == b'WEBP':
@@ -548,11 +550,11 @@ class ComicPageAPIHandler(ImageAPIHandler):
 class ThumbnailAPIHandler(ImageAPIHandler):
     def get(self, comic_id):
         self.validateAPIKey()
-        session = self.application.dm.Session()
-        comic = session.query(Comic).get(comic_id)
-        if comic.thumbnail != None:
+        thumbnail = self.library.get_comic_thumbnail(comic_id)
+
+        if thumbnail != None:
             self.setContentType('image/jpg')
-            self.write(comic.thumbnail)
+            self.write(thumbnail)
         else:
             default_img_file = AppFolders.imagePath("default.jpg")
             with open(default_img_file, 'rb') as fd:
@@ -1133,6 +1135,7 @@ class APIServer(tornado.web.Application):
         #    sys.exit(-1)
         
         self.dm = DataManager()
+        self.library = Library(self.dm.Session)
         
         if opts.reset or opts.reset_and_run:
             logging.info( "Deleting any existing database!")
@@ -1169,7 +1172,10 @@ class APIServer(tornado.web.Application):
         #http_server.listen(port+1)        
          
         self.version = csversion.version
-        
+
+        thumbnailHandler = ThumbnailAPIHandler
+        thumbnailHandler.library = self.library
+
         handlers = [
             # Web Pages
             (r"/", MainHandler),
@@ -1191,7 +1197,7 @@ class APIServer(tornado.web.Application):
             (r"/comiclist", ComicListAPIHandler),
             (r"/comic/([0-9]+)/page/([0-9]+|clear)/bookmark", ComicBookmarkAPIHandler ),
             (r"/comic/([0-9]+)/page/([0-9]+)", ComicPageAPIHandler ),
-            (r"/comic/([0-9]+)/thumbnail", ThumbnailAPIHandler),
+            (r"/comic/([0-9]+)/thumbnail", thumbnailHandler),
             (r"/comic/([0-9]+)/file", FileAPIHandler),
             (r"/entities(/.*)*", EntityAPIHandler),
             (r"/folders(/.*)*", FolderAPIHandler),
