@@ -82,6 +82,11 @@ def custom_get_current_user(handler):
     return  user
 
 class BaseHandler(tornado.web.RequestHandler):
+
+    @property
+    def library(self):
+        return self.application.library
+
     def get_current_user(self):
         return custom_get_current_user(self)
     
@@ -353,9 +358,8 @@ class ImageAPIHandler(GenericAPIHandler):
         self.add_header("Content-type","image/{0}".format(imtype))
     
     def getImageData(self, comic_id, pagenum):
-        #TODO handle errors in this func!
-        session = self.application.dm.Session()
-        obj = session.query(Comic).filter(Comic.id == int(comic_id)).first()
+
+        obj = self.library.get_comic(comic_id)
         image_data = None
         default_img_file = AppFolders.imagePath("default.jpg")
 
@@ -567,8 +571,7 @@ class FileAPIHandler(GenericAPIHandler):
         self.validateAPIKey()
 
         #TODO handle errors in this func!
-        session = self.application.dm.Session()
-        obj = session.query(Comic).filter(Comic.id == int(comic_id)).first()
+        obj = self.library.get_comic(comic_id)
         if obj is not None:
             ca = self.application.getComicArchive(obj.path)
             if ca.isZip():
@@ -1173,9 +1176,6 @@ class APIServer(tornado.web.Application):
          
         self.version = csversion.version
 
-        thumbnailHandler = ThumbnailAPIHandler
-        thumbnailHandler.library = self.library
-
         handlers = [
             # Web Pages
             (r"/", MainHandler),
@@ -1197,7 +1197,7 @@ class APIServer(tornado.web.Application):
             (r"/comiclist", ComicListAPIHandler),
             (r"/comic/([0-9]+)/page/([0-9]+|clear)/bookmark", ComicBookmarkAPIHandler ),
             (r"/comic/([0-9]+)/page/([0-9]+)", ComicPageAPIHandler ),
-            (r"/comic/([0-9]+)/thumbnail", thumbnailHandler),
+            (r"/comic/([0-9]+)/thumbnail", ThumbnailAPIHandler),
             (r"/comic/([0-9]+)/file", FileAPIHandler),
             (r"/entities(/.*)*", EntityAPIHandler),
             (r"/folders(/.*)*", FolderAPIHandler),
