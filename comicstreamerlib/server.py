@@ -570,7 +570,6 @@ class FileAPIHandler(GenericAPIHandler):
     def get(self, comic_id):
         self.validateAPIKey()
 
-        #TODO handle errors in this func!
         obj = self.library.get_comic(comic_id)
         if obj is not None:
             ca = self.application.getComicArchive(obj.path)
@@ -581,10 +580,13 @@ class FileAPIHandler(GenericAPIHandler):
                 
             self.add_header("Content-Disposition", "attachment; filename=" + os.path.basename(obj.path))    
 
-            with open(obj.path, 'rb') as fd:
-                file_data = fd.read()
-    
-            self.write(file_data)
+            # stream response in chunks, cbr/z could be over 300MB in size!
+            with open(obj.path, 'rb') as f:
+                while True:
+                    data = f.read(512 * 1024)
+                    if not data: break
+                    self.write(data)
+            self.finish()
 
 class FolderAPIHandler(JSONResultAPIHandler):
     def get(self, args):            
