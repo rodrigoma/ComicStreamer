@@ -827,8 +827,8 @@ class EntityAPIHandler(JSONResultAPIHandler):
 class ReaderHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self, comic_id):
-        session = self.application.dm.Session()
-        obj = session.query(Comic).filter(Comic.id == int(comic_id)).first()
+
+        obj = self.library.get_comic(comic_id)
         page_data = None
         if obj is not None:
             #self.render("templates/reader.html", make_list=self.make_list, id=comic_id, count=obj.page_count)
