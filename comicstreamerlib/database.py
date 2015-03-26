@@ -14,6 +14,7 @@ from comicstreamerlib.folders import AppFolders
 
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import deferred
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, Float, String, DateTime, LargeBinary, Table, ForeignKey
 from sqlalchemy.orm import relationship, backref
@@ -26,6 +27,8 @@ from sqlalchemy.orm.properties import \
                         CompositeProperty,\
                         RelationshipProperty
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
+
+
 
 SCHEMA_VERSION=3
 
@@ -179,7 +182,7 @@ class Comic(Base):
     deleted_ts = Column(DateTime)
     lastread_ts = Column(DateTime)
     lastread_page = Column(Integer)
-    thumbnail = Column(LargeBinary)
+    thumbnail = deferred(Column(LargeBinary))
     
     #hash = Column(String)
     added_ts = Column(DateTime, default=datetime.utcnow)  # when the comic was added to the DB
