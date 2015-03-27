@@ -25,6 +25,7 @@ import tornado.escape
 import tornado.ioloop
 import tornado.web
 import urllib
+import mimetypes
 from urllib2 import quote
 
 
@@ -572,19 +573,19 @@ class FileAPIHandler(GenericAPIHandler):
 
         obj = self.library.getComic(comic_id)
         if obj is not None:
-            ca = self.application.getComicArchive(obj.path)
-            if ca.isZip():
-                self.add_header("Content-type","application/zip, application/octet-stream")
-            else:
-                self.add_header("Content-type","application/x-rar-compressed, application/octet-stream")
-                
+            (content_type, encoding) = mimetypes.guess_type(obj.path)
+            if content_type is None:
+                content_type = "application/octet-stream"
+
+            self.add_header("Content-type", content_type)
             self.add_header("Content-Disposition", "attachment; filename=" + os.path.basename(obj.path))    
 
             # stream response in chunks, cbr/z could be over 300MB in size!
             with open(obj.path, 'rb') as f:
                 while True:
-                    data = f.read(512 * 1024)
-                    if not data: break
+                    data = f.read(2048 * 1024)
+                    if not data:
+                        break
                     self.write(data)
             self.finish()
 
