@@ -370,12 +370,11 @@ class VersionAPIHandler(JSONResultAPIHandler):
 class DBInfoAPIHandler(JSONResultAPIHandler):
     def get(self):
         self.validateAPIKey()
-        session = self.application.dm.Session()
-        obj = session.query(DatabaseInfo).first()   
-        response = { 'id': obj.uuid,
-                    'last_updated':  obj.last_updated.isoformat(),
-                    'created':  obj.created.isoformat(),
-                    'comic_count': session.query(Comic).count()
+        stats = self.library.getStats()
+        response = { 'id': stats['uuid'],
+                    'last_updated':  stats['last_updated'].isoformat(),
+                    'created':  stats['created'].isoformat(),
+                    'comic_count': stats['total']
                     }
         self.setContentType()
         self.write(response)
@@ -844,6 +843,9 @@ class MainHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self):
         stats = self.library.getStats()
+        stats['last_updated'] = utils.utc_to_local(stats['last_updated']).strftime("%Y-%m-%d %H:%M:%S")
+        stats['created'] = utils.utc_to_local(stats['created']).strftime("%Y-%m-%d %H:%M:%S")
+
         recently_added_comics = self.library.recentlyAddedComics(10)
         recently_read_comics = self.library.recentlyReadComics(10)
         roles_list = [role.name for role in self.library.getRoles()]

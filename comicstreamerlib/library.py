@@ -55,9 +55,12 @@ class Library:
         session = self.getSession()
         stats['total'] = session.query(Comic).count()
 
-        (last_updated, created) = session.query(DatabaseInfo.last_updated, DatabaseInfo.created).first()
-        stats['last_updated'] = utils.utc_to_local(last_updated).strftime("%Y-%m-%d %H:%M:%S")
-        stats['created'] = utils.utc_to_local(created).strftime("%Y-%m-%d %H:%M:%S")
+        dbinfo = session.query(DatabaseInfo).first()
+        #stats['last_updated'] = utils.utc_to_local(last_updated).strftime("%Y-%m-%d %H:%M:%S")
+        #stats['created'] = utils.utc_to_local(created).strftime("%Y-%m-%d %H:%M:%S")
+        stats['uuid'] = dbinfo.uuid
+        stats['last_updated'] = dbinfo.last_updated
+        stats['created'] = dbinfo.created
 
         stats['series'] = session.query(func.count(distinct(Comic.series))).scalar()
         stats['persons'] = session.query(Person).count()
