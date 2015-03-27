@@ -1,4 +1,5 @@
 """Encapsulates all data acces code to maintain the comic library"""
+import comicstreamerlib.utils as utils
 from comicstreamerlib.database import Comic
 from comicstreamerlib.folders import AppFolders
 from comicapi.comicarchive import ComicArchive
@@ -21,7 +22,7 @@ class Library:
     def getComic(self, comic_id):
         return self.getSession().query(Comic).get(int(comic_id))
 
-    def getComicPage(self, comic_id, page_number):
+    def getComicPage(self, comic_id, page_number, max_height = None):
         (path, page_count) = self.getSession().query(Comic.path, Comic.page_count) \
                                  .filter(Comic.id == int(comic_id)).first()
 
@@ -36,7 +37,15 @@ class Library:
         if image_data is None:
             with open(default_img_file, 'rb') as fd:
                 image_data = fd.read()
+            return image_data
 
+        # resize image
+        if max_height is not None:
+            try:
+                image_data = utils.resizeImage(int(max_height), image_data)
+            except Exception as e:
+                #logging.error(e)
+                pass
         return image_data
 
     def getComicArchive(self, path):

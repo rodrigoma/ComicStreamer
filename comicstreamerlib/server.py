@@ -521,18 +521,11 @@ class ComicBookmarkAPIHandler(JSONResultAPIHandler):
 class ComicPageAPIHandler(ImageAPIHandler):
     def get(self, comic_id, pagenum):
         self.validateAPIKey()
-        
-        image_data = self.library.getComicPage(comic_id, pagenum)
-        
+
         max_height = self.get_argument(u"max_height", default=None)
-        if max_height is not None:
-            try:
-                max_h = int(max_height)
-                image_data = utils.resizeImage(max_h, image_data)
-            except Exception as e:
-                logging.error(e)
-                pass
-        
+
+        image_data = self.library.getComicPage(comic_id, pagenum, max_height)
+
         self.setContentType(image_data)
         self.write(image_data)
 
