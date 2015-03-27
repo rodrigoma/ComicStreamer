@@ -1,6 +1,8 @@
 """Encapsulates all data acces code to maintain the comic library"""
+from sqlalchemy import func, distinct
+
 import comicstreamerlib.utils as utils
-from comicstreamerlib.database import Comic
+from comicstreamerlib.database import Comic, DatabaseInfo, Person, Role
 from comicstreamerlib.folders import AppFolders
 from comicapi.comicarchive import ComicArchive
 
@@ -47,6 +49,39 @@ class Library:
                 #logging.error(e)
                 pass
         return image_data
+
+    def getStats(self):
+        stats = {}
+        session = self.getSession()
+        stats['total'] = session.query(Comic).count()
+
+        (last_updated, created) = session.query(DatabaseInfo.last_updated, DatabaseInfo.created).first()
+        stats['last_updated'] = utils.utc_to_local(last_updated).strftime("%Y-%m-%d %H:%M:%S")
+        stats['created'] = utils.utc_to_local(created).strftime("%Y-%m-%d %H:%M:%S")
+
+        stats['series'] = session.query(func.count(distinct(Comic.series))).scalar()
+        stats['persons'] = session.query(Person).count()
+
+        return stats
+
+    def recentlyAddedComics(self, limit = 10):
+        return self.getSession().query(Comic)\
+                   .order_by(Comic.added_ts.desc())\
+                   .limit(limit)
+
+    def recentlyReadComics(self, limit = 10):
+        return self.getSession().query(Comic)\
+                   .filter(Comic.lastread_ts != "")\
+                   .order_by(Comic.lastread_ts.desc())\
+                   .limit(limit)
+
+    def getRoles(self):
+        return self.getSession().query(Role).all()
+
+    def randomComic(self):
+        # SQLite specific random call
+        return self.getSession().query(Comic)\
+                   .order_by(func.random()).limit(1).first()
 
     def getComicArchive(self, path):
         # should also look at modified time of file

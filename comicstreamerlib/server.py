@@ -843,28 +843,16 @@ class UnknownHandler(BaseHandler):
 class MainHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self):
-        session = self.application.dm.Session()
-        stats=dict()
-        stats['total'] = session.query(Comic).count()
-        dt = session.query(DatabaseInfo).first().last_updated
-        stats['last_updated'] = utils.utc_to_local(dt).strftime("%Y-%m-%d %H:%M:%S")
-        dt = session.query(DatabaseInfo).first().created
-        stats['created'] = utils.utc_to_local(dt).strftime("%Y-%m-%d %H:%M:%S")
-        
-        stats['series'] = len(set(session.query(Comic.series)))
-        stats['persons'] = session.query(Person).count()
-        
-        recently_added_comics = session.query(Comic).order_by(Comic.added_ts.desc()).limit(10)
-        recently_read_comics = session.query(Comic).filter(Comic.lastread_ts != "").order_by(Comic.lastread_ts.desc()).limit(10)
-        
-        roles_query = session.query(Role.name)
-        roles_list = [i[0] for i in list(roles_query)]
+        stats = self.library.getStats()
+        recently_added_comics = self.library.recentlyAddedComics(10)
+        recently_read_comics = self.library.recentlyReadComics(10)
+        roles_list = [role.name for role in self.library.getRoles()]
+        random_comic = self.library.randomComic()
 
-        # SQLite specific random call
-        random_comic = session.query(Comic).order_by(func.random()).first()
         if random_comic is None:
             random_comic = type('fakecomic', (object,), 
              {'id':0, 'series':'No Comics', 'issue':0})()
+
         self.render("index.html", stats=stats,
                     random_comic=random_comic,
                     recently_added = list(recently_added_comics),
