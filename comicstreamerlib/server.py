@@ -357,9 +357,6 @@ class ImageAPIHandler(GenericAPIHandler):
         
         imtype = imghdr.what(StringIO.StringIO(image_data))
         self.add_header("Content-type","image/{0}".format(imtype))
-    
-    def getImageData(self, comic_id, pagenum):
-        return self.library.getComicPage(comic_id, pagenum)
 
             
 class VersionAPIHandler(JSONResultAPIHandler):
@@ -525,7 +522,7 @@ class ComicPageAPIHandler(ImageAPIHandler):
     def get(self, comic_id, pagenum):
         self.validateAPIKey()
         
-        image_data = self.getImageData(comic_id, pagenum)
+        image_data = self.library.getComicPage(comic_id, pagenum)
         
         max_height = self.get_argument(u"max_height", default=None)
         if max_height is not None:
@@ -1295,6 +1292,3 @@ class APIServer(tornado.web.Application):
         import threading
         t = threading.Thread(target=self.run)
         t.start()
-        
-    def getComicArchive(self, path):
-        return self.library.getComicArchive(path)
