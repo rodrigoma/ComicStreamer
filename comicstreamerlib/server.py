@@ -359,7 +359,7 @@ class ImageAPIHandler(GenericAPIHandler):
     
     def getImageData(self, comic_id, pagenum):
 
-        obj = self.library.get_comic(comic_id)
+        obj = self.library.getComic(comic_id)
         image_data = None
         default_img_file = AppFolders.imagePath("default.jpg")
 
@@ -554,7 +554,7 @@ class ComicPageAPIHandler(ImageAPIHandler):
 class ThumbnailAPIHandler(ImageAPIHandler):
     def get(self, comic_id):
         self.validateAPIKey()
-        thumbnail = self.library.get_comic_thumbnail(comic_id)
+        thumbnail = self.library.getComicThumbnail(comic_id)
 
         if thumbnail != None:
             self.setContentType('image/jpg')
@@ -570,7 +570,7 @@ class FileAPIHandler(GenericAPIHandler):
     def get(self, comic_id):
         self.validateAPIKey()
 
-        obj = self.library.get_comic(comic_id)
+        obj = self.library.getComic(comic_id)
         if obj is not None:
             ca = self.application.getComicArchive(obj.path)
             if ca.isZip():
@@ -828,7 +828,7 @@ class ReaderHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self, comic_id):
 
-        obj = self.library.get_comic(comic_id)
+        obj = self.library.getComic(comic_id)
         page_data = None
         if obj is not None:
             #self.render("templates/reader.html", make_list=self.make_list, id=comic_id, count=obj.page_count)
