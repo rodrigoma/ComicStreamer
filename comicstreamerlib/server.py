@@ -1309,16 +1309,4 @@ class APIServer(tornado.web.Application):
         t.start()
         
     def getComicArchive(self, path):
-        # should also look at modified time of file
-        for ca in self.comicArchiveList:
-            if ca.path == path:
-                # remove from list and put at end
-                self.comicArchiveList.remove(ca)
-                self.comicArchiveList.append(ca)
-                return ca
-        else:
-            ca = ComicArchive(path, default_image_path=AppFolders.imagePath("default.jpg"))
-            self.comicArchiveList.append(ca)
-            if len(self.comicArchiveList) > 10:
-                self.comicArchiveList.pop(0)
-            return ca
+        return self.library.getComicArchive(path)
