@@ -479,8 +479,9 @@ class EntitiesBrowserHandler(BaseHandler):
 class ComicAPIHandler(JSONResultAPIHandler):
     def get(self, id):
         self.validateAPIKey()
-        session = self.application.dm.Session()
-        result = session.query(Comic).filter(Comic.id == int(id)).all()
+
+        result = [self.library.getComic(id)]
+
         self.setContentType()
         self.write(resultSetToJson(result, "comics"))
 
