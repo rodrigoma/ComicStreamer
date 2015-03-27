@@ -398,35 +398,22 @@ class ComicListAPIHandler(ZippableAPIHandler):
     def get(self):
         self.validateAPIKey()
 
-        # create a query on all comics
-        session = self.application.dm.Session()
-        query = session.query(Comic)
-        
-        query = self.processComicQueryArgs(query)
-        query, total_results = self.processPagingArgs(query)
-        
-        #print "-------->", query
-        
-        #import code; code.interact(local=locals())
-        logging.debug( "before query" )
-        
-        #self.application.dm.engine.echo = True
-        query = query.options(subqueryload('characters_raw'))
-        query = query.options(subqueryload('storyarcs_raw'))
-        query = query.options(subqueryload('locations_raw'))
-        query = query.options(subqueryload('teams_raw'))
-        #query = query.options(subqueryload('credits_raw'))
-        query = query.options(subqueryload('generictags_raw'))
-        
-        resultset = query.all()
+        criteria_args = [
+            u"keyphrase", u"series", u"path", u"folder", u"title", u"start_date",
+            u"end_date", u"added_since", u"modified_since", u"lastread_since",
+            u"order", u"character", u"team", u"location", u"storyarc", u"volume",
+            u"publisher", u"credit", u"tag", u"genre"
+        ]
 
+        criteria = {key: self.get_argument(key, default=None) for key in criteria_args}
+        paging = {
+            'per_page': self.get_argument(u"per_page", default=None),
+            'offset': self.get_argument(u"offset", default=None)
+        }
 
-        logging.debug( "after query" )
-        #self.application.dm.engine.echo = False
-        
-        logging.debug( "before JSON render" )
+        resultset, total_results = self.library.list(criteria, paging)
+
         json_data = resultSetToJson(resultset, "comics", total_results)
-        logging.debug( "after JSON render" )
         
         self.writeResults(json_data)    
 
