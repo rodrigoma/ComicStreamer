@@ -21,6 +21,24 @@ class Library:
     def getComic(self, comic_id):
         return self.getSession().query(Comic).get(int(comic_id))
 
+    def getComicPage(self, comic_id, page_number):
+        (path, page_count) = self.getSession().query(Comic.path, Comic.page_count) \
+                                 .filter(Comic.id == int(comic_id)).first()
+
+        image_data = None
+        default_img_file = AppFolders.imagePath("default.jpg")
+
+        if path is not None:
+            if int(page_number) < page_count:
+                ca = self.getComicArchive(path)
+                image_data = ca.getPage(int(page_number))
+
+        if image_data is None:
+            with open(default_img_file, 'rb') as fd:
+                image_data = fd.read()
+
+        return image_data
+
     def getComicArchive(self, path):
         # should also look at modified time of file
         for ca in self.comicArchiveList:

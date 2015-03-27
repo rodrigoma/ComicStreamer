@@ -359,21 +359,8 @@ class ImageAPIHandler(GenericAPIHandler):
         self.add_header("Content-type","image/{0}".format(imtype))
     
     def getImageData(self, comic_id, pagenum):
+        return self.library.getComicPage(comic_id, pagenum)
 
-        obj = self.library.getComic(comic_id)
-        image_data = None
-        default_img_file = AppFolders.imagePath("default.jpg")
-
-        if obj is not None:
-            if int(pagenum) < obj.page_count:
-                ca = self.application.getComicArchive(obj.path)
-                image_data = ca.getPage(int(pagenum))
-    
-        if image_data is None:
-            with open(default_img_file, 'rb') as fd:
-                image_data = fd.read()
-            
-        return image_data
             
 class VersionAPIHandler(JSONResultAPIHandler):
     def get(self):
