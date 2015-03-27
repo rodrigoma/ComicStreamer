@@ -420,20 +420,10 @@ class ComicListAPIHandler(ZippableAPIHandler):
 class DeletedAPIHandler(ZippableAPIHandler):
     def get(self):
         self.validateAPIKey()
-    
-        # get all deleted comics first
-        session = self.application.dm.Session()
-        resultset = session.query(DeletedComic)
-        
+
         since_filter = self.get_argument(u"since", default=None)
-        
-        # now winnow it down with timestampe, if requested
-        if since_filter is not None:
-            try:
-                dt=dateutil.parser.parse(since_filter)
-                resultset = resultset.filter( DeletedComic.ts >= dt )
-            except:
-                pass                
+        resultset = self.library.getDeletedComics(since_filter)
+
         json_data = resultSetToJson(resultset, "deletedcomics")
                 
         self.writeResults(json_data)    

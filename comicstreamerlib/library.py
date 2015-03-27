@@ -7,7 +7,7 @@ from sqlalchemy.orm import subqueryload
 
 import comicstreamerlib.utils as utils
 from comicstreamerlib.database import Comic, DatabaseInfo, Person, Role, Credit, Character, GenericTag, Team, Location, \
-    StoryArc, Genre
+    StoryArc, Genre, DeletedComic
 from comicstreamerlib.folders import AppFolders
 from comicapi.comicarchive import ComicArchive
 
@@ -89,6 +89,20 @@ class Library:
         # SQLite specific random call
         return self.getSession().query(Comic)\
                    .order_by(func.random()).limit(1).first()
+
+    def getDeletedComics(self, since=None):
+        # get all deleted comics first
+        session = self.getSession()
+        resultset = session.query(DeletedComic)
+
+        # now winnow it down with timestampe, if requested
+        if since is not None:
+            try:
+                dt = dateutil.parser.parse(since)
+                resultset = resultset.filter(DeletedComic.ts >= dt)
+            except:
+                pass
+        return resultset.all()
 
     def list(self, criteria={}, paging=None):
         if paging is None:
