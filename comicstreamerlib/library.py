@@ -208,6 +208,11 @@ class Library:
                 self.namedEntities[key] = cls(name=name)
         return self.namedEntities[key]
 
+    def addComics(self, comicList):
+        for comic in comicList:
+            self.getSession().add(comic)
+        self.getSession().commit()
+
     def deleteComics(self, comic_id_list):
         s = self.getSession()
         for comic_id in comic_id_list:
