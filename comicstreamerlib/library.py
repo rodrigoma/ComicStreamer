@@ -211,6 +211,8 @@ class Library:
     def addComics(self, comicList):
         for comic in comicList:
             self.getSession().add(comic)
+        if len(comicList) > 0:
+            self._dbUpdated()
         self.getSession().commit()
 
     def deleteComics(self, comic_id_list):
@@ -220,7 +222,12 @@ class Library:
             deleted.comic_id = int(comic_id)
             s.add(deleted)
             s.delete(s.query(Comic).get(comic_id))
+        if len(comic_id_list) > 0:
+            self._dbUpdated()
         s.commit()
+
+    def _dbUpdated(self):
+        self.getSession().query(DatabaseInfo).first().last_updated = datetime.utcnow()
 
     def list(self, criteria={}, paging=None):
         if paging is None:

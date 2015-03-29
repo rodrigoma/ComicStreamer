@@ -301,10 +301,6 @@ class Monitor():
         
         logging.info("Monitor: Added {0} comics".format(self.add_count))
         logging.info("Monitor: Removed {0} comics".format(self.remove_count))
-        
-        if self.remove_count > 0 or self.add_count > 0:
-            self.session.query(DatabaseInfo).first().last_updated = datetime.utcnow()
-            self.session.commit()
             
         if self.quit_when_done:
             self.quit = True
