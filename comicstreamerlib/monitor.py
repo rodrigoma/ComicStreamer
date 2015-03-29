@@ -18,6 +18,7 @@ from comicapi.issuestring import *
 import utils
 
 from database import *
+from library import Library
 
 class  MonitorEventHandler(watchdog.events.FileSystemEventHandler):
     
@@ -61,6 +62,7 @@ class Monitor():
 
         logging.debug("Monitor: started main loop.")
         self.session = self.dm.Session()
+        self.library = Library(self.dm.Session)
         
         observer = Observer()
         self.eventHandler = MonitorEventHandler(self)
@@ -155,9 +157,7 @@ class Monitor():
                 logging.debug(u"Removed modifed {0}".format(comic.path))
                 remove = True
            
-        if remove:
-            self.removeComic(comic)
-            self.remove_count += 1
+        return remove
 
     def getComicMetadata(self, path):
         #start_time = time.time()
@@ -208,10 +208,7 @@ class Monitor():
         return None
 
     def removeComic(self, comic):
-        deleted = DeletedComic()
-        deleted.comic_id = comic.id
-        self.session.add(deleted)
-        self.session.delete(comic)
+        self.library.deleteComic(comic.id)
 
     def fetchObjByName(self, obj_dict, instance_name,):
         try:
@@ -490,6 +487,9 @@ class Monitor():
         
         self.add_count = 0      
         self.remove_count = 0
+
+        # build a list of comics to remove
+        to_remove = []
         
         # get the entire comic table into memory
         query = list(self.session.query(Comic))
@@ -498,18 +498,18 @@ class Monitor():
         self.setStatusDetail(u"Monitor: Removing missing or modified files from DB...")
         #start_time = time.time()
         for comic in query:
-            self.checkIfRemovedOrModified( comic, self.paths )
+            if self.checkIfRemovedOrModified( comic, self.paths ):
+                to_remove.append(comic.id)
             if self.quit:
                 self.setStatusDetail(u"Monitor: halting scan!")
                 return
                 
         #print time.time() - start_time, "seconds"
         self.setStatusDetail(u"Monitor: Done removing files.")
-        
-        if self.remove_count > 0:
-            self.dm.engine.echo = True
-            self.session.commit()
-            self.dm.engine.echo = False
+
+        if len(to_remove) > 0:
+            self.library.deleteComics(to_remove)
+
 
         self.setStatusDetail(u"Monitor: found {0} files to inspect...".format(len(filelist)))
         

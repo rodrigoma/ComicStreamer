@@ -5,10 +5,10 @@ import os
 from sqlalchemy import func, distinct
 from sqlalchemy.orm import subqueryload
 
-import comicstreamerlib.utils as utils
-from comicstreamerlib.database import Comic, DatabaseInfo, Person, Role, Credit, Character, GenericTag, Team, Location, \
+import utils
+from database import Comic, DatabaseInfo, Person, Role, Credit, Character, GenericTag, Team, Location, \
     StoryArc, Genre, DeletedComic
-from comicstreamerlib.folders import AppFolders
+from folders import AppFolders
 from comicapi.comicarchive import ComicArchive
 
 
@@ -103,6 +103,15 @@ class Library:
             except:
                 pass
         return resultset.all()
+
+    def deleteComics(self, comic_id_list):
+        s = self.getSession()
+        for comic_id in comic_id_list:
+            deleted = DeletedComic()
+            deleted.comic_id = int(comic_id)
+            s.add(deleted)
+            s.delete(s.query(Comic).get(comic_id))
+        s.commit()
 
     def list(self, criteria={}, paging=None):
         if paging is None:
