@@ -535,6 +535,7 @@ class FileAPIHandler(GenericAPIHandler):
             self.add_header("Content-Disposition", "attachment; filename=" + os.path.basename(obj.path))    
 
             # stream response in chunks, cbr/z could be over 300MB in size!
+            # TODO: check it doesn't buffer the response, it should send data chunk by chunk
             with open(obj.path, 'rb') as f:
                 while True:
                     data = f.read(2048 * 1024)
@@ -546,7 +547,6 @@ class FileAPIHandler(GenericAPIHandler):
 class FolderAPIHandler(JSONResultAPIHandler):
     def get(self, args):            
         self.validateAPIKey()
-        session = self.application.dm.Session()
         if args is not None:
             args = urllib.unquote(args)
             arglist = args.split('/')
@@ -602,7 +602,8 @@ class FolderAPIHandler(JSONResultAPIHandler):
                             }   
                         response['folders'].append(item)
                 # see if there are any comics here
-                response['comics']['count'] = session.query(Comic).filter(Comic.folder == path).count()
+                (ignore, total_results) = self.library.list({'folder': path}, {'per_page': 0, 'offset': 0})
+                response['comics']['count'] = total_results
                 comic_path = u"/comiclist?folder=" + urllib.quote(u"{0}".format(path).encode('utf-8'))
                 response['comics']['url_path'] = comic_path
 

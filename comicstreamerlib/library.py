@@ -106,7 +106,7 @@ class Library:
 
     def list(self, criteria={}, paging=None):
         if paging is None:
-            paging = {'per_page': 1, 'offset': 10}
+            paging = {'per_page': 10, 'offset': 1}
 
         query = self.getSession().query(Comic)
 
