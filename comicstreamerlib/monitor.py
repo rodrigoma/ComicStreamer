@@ -451,24 +451,21 @@ class Monitor():
         # add to the DB before the actual comics are added
         #self.setStatusDetailOnly(u"Monitor: Adding {0} files to library...".format(len(md_list)))
 
-        self.saveChildInfoToDB(md_list)
+        #self.saveChildInfoToDB(md_list)
 
         #logging.debug(u"Monitor: finish adding child sets")
 
         # create dictionarys of all those objects, so we don't have to query the database 
-        self.createChildDicts()
+        #self.createChildDicts()
         
-        for md  in md_list:
-            self.addComicFromMetadata( md )
+        for md in md_list:
+            self.add_count += 1
+            comic = self.library.createComicFromMetadata(md)
+            self.session.add(comic)
             if self.quit:
                 self.setStatusDetail(u"Monitor: halting scan!")
                 return
-                
-            # periodically commit   
-            #if self.add_count % 1000 == 0:
-            #    self.session.commit()
-            #    self.setStatusDetail(u"Monitor: {0} of {1} added...".format(self.add_count,len(md_list)), logging.INFO)
-                
+
         if self.add_count > 0:  
             self.session.commit()
                     

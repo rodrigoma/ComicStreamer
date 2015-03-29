@@ -191,17 +191,17 @@ class Comic(Base):
     credits_raw = relationship('Credit', #secondary=credits_,
                                 cascade="all, delete", )#, backref='comics')
     characters_raw = relationship('Character', secondary=comics_characters_table,
-                                cascade="delete")#, backref='comics')
+                                cascade="save-update,delete")#, backref='comics')
     teams_raw = relationship('Team', secondary=comics_teams_table,
-                                cascade="delete") #)#, backref='comics')
+                                cascade="save-update,delete") #)#, backref='comics')
     locations_raw = relationship('Location', secondary=comics_locations_table,
-                                cascade="delete") #, backref='comics')
+                                cascade="save-update,delete") #, backref='comics')
     storyarcs_raw = relationship('StoryArc', secondary=comics_storyarcs_table,
-                                cascade="delete") #, backref='comics')
+                                cascade="save-update,delete") #, backref='comics')
     generictags_raw = relationship('GenericTag', secondary=comics_generictags_table,
-                                cascade="delete") #, backref='comics')
+                                cascade="save-update,delete") #, backref='comics')
     genres_raw = relationship('Genre', secondary=comics_genres_table,
-                                cascade="delete") #, backref='comics')
+                                cascade="save-update,delete") #, backref='comics')
 
     persons_raw = relationship("Person",
                 secondary="join(Credit, Person, Credit.person_id == Person.id)",

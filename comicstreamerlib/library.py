@@ -1,4 +1,5 @@
 """Encapsulates all data acces code to maintain the comic library"""
+from datetime import datetime
 import dateutil
 import os
 
@@ -10,6 +11,7 @@ from database import Comic, DatabaseInfo, Person, Role, Credit, Character, Gener
     StoryArc, Genre, DeletedComic
 from folders import AppFolders
 from comicapi.comicarchive import ComicArchive
+from comicapi.issuestring import IssueString
 
 
 class Library:
@@ -17,6 +19,7 @@ class Library:
     def __init__(self, session_getter):
         self.getSession = session_getter
         self.comicArchiveList = []
+        self.namedEntities = {}
 
     def getSession(self):
         """SQLAlchemy session"""
@@ -103,6 +106,107 @@ class Library:
             except:
                 pass
         return resultset.all()
+
+    def createComicFromMetadata(self, md):
+
+        comic = Comic()
+        # store full path, and filename and folder separately, for search efficiency,
+        # at the cost of redundant storage
+        comic.folder, comic.file = os.path.split(md.path)
+        comic.path = md.path
+
+        comic.page_count = md.page_count
+        comic.mod_ts = md.mod_ts
+        comic.hash = md.hash
+        comic.filesize = md.filesize
+        comic.thumbnail = md.thumbnail
+
+        if not md.isEmpty:
+            if md.series is not None:
+                comic.series = unicode(md.series)
+            if md.issue is not None:
+                comic.issue = unicode(md.issue)
+                comic.issue_num = IssueString(unicode(comic.issue)).asFloat()
+
+            if md.year is not None:
+                try:
+                    day = 1
+                    month = 1
+                    if md.month is not None:
+                        month = int(md.month)
+                    if md.day is not None:
+                        day = int(md.day)
+                    year = int(md.year)
+                    comic.date = datetime(year, month, day)
+                except:
+                    pass
+
+            comic.year = md.year
+            comic.month = md.month
+            comic.day = md.day
+
+            if md.volume is not None:
+                comic.volume = int(md.volume)
+            if md.publisher is not None:
+                comic.publisher = unicode(md.publisher)
+            if md.title is not None:
+                comic.title = unicode(md.title)
+            if md.comments is not None:
+                comic.comments = unicode(md.comments)
+            if md.imprint is not None:
+                comic.imprint = unicode(md.imprint)
+            if md.webLink is not None:
+                comic.weblink = unicode(md.webLink)
+
+        if md.characters is not None:
+            for c in list(set(md.characters.split(","))):
+                character = self.getNamedEntity(Character, c.strip())
+                comic.characters_raw.append(character)
+
+        if md.teams is not None:
+            for t in list(set(md.teams.split(","))):
+                team = self.getNamedEntity(Team, t.strip())
+                comic.teams_raw.append(team)
+
+        if md.locations is not None:
+            for l in list(set(md.locations.split(","))):
+                location = self.getNamedEntity(Location, l.strip())
+                comic.locations_raw.append(location)
+
+        if md.storyArc is not None:
+            for sa in list(set(md.storyArc.split(","))):
+                storyarc = self.getNamedEntity(StoryArc, sa.strip())
+                comic.storyarcs_raw.append(storyarc)
+
+        if md.genre is not None:
+            for g in list(set(md.genre.split(","))):
+                genre = self.getNamedEntity(Genre,  g.strip())
+                comic.genres_raw.append(genre)
+
+        if md.tags is not None:
+            for gt in list(set(md.tags)):
+                generictag = self.getNamedEntity(GenericTag,  gt.strip())
+                comic.generictags_raw.append(generictag)
+
+        if md.credits is not None:
+            for credit in md.credits:
+                role = self.getNamedEntity(Role, credit['role'].lower().strip())
+                person = self.getNamedEntity(Person, credit['person'].strip())
+                comic.credits_raw.append(Credit(person, role))
+
+        return comic
+
+    def getNamedEntity(self, cls, name):
+        """Gets related entities such as Characters, Persons etc by name"""
+        # this is a bit hackish, we need unique instances between successive
+        # calls for newly created entities, to avoid unique violations at flush time
+        key = (cls, name)
+        if key not in self.namedEntities.keys():
+            obj = self.getSession().query(cls).filter(cls.name == name).first()
+            self.namedEntities[key] = obj
+            if obj is None:
+                self.namedEntities[key] = cls(name=name)
+        return self.namedEntities[key]
 
     def deleteComics(self, comic_id_list):
         s = self.getSession()
