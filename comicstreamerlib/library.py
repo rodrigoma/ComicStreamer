@@ -208,10 +208,10 @@ class Library:
                 self.namedEntities[key] = cls(name=name)
         return self.namedEntities[key]
 
-    def addComics(self, comicList):
-        for comic in comicList:
+    def addComics(self, comic_list):
+        for comic in comic_list:
             self.getSession().add(comic)
-        if len(comicList) > 0:
+        if len(comic_list) > 0:
             self._dbUpdated()
         self.getSession().commit()
 
@@ -227,6 +227,7 @@ class Library:
         s.commit()
 
     def _dbUpdated(self):
+        """Updates DatabaseInfo status"""
         self.getSession().query(DatabaseInfo).first().last_updated = datetime.utcnow()
 
     def list(self, criteria={}, paging=None):
