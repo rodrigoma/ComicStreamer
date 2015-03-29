@@ -218,7 +218,27 @@ class Monitor():
                 return
 
         self.library.addComics(comics)
-                    
+
+    def createAddRemoveLists(self, dirs):
+        ix = {}
+        db_set = set()
+        current_set = set()
+        filelist = utils.get_recursive_filelist(dirs)
+        for path in filelist:
+            current_set.add((path, datetime.utcfromtimestamp(os.path.getmtime(path))))
+        logging.info("NEW -- current_set size [%d]" % len(current_set))
+
+        for comic_id, path, md_ts in self.library.getComicPaths():
+            db_set.add((path, md_ts))
+            ix[path] = comic_id
+        to_add = current_set - db_set
+        to_remove = db_set - current_set
+        logging.info("NEW -- db_set size [%d]" % len(db_set))
+        logging.info("NEW -- to_add size [%d]" % len(to_add))
+        logging.info("NEW -- to_remove size [%d]" % len(to_remove))
+
+        return [r[0] for r in to_add], [ix[r[0]] for r in to_remove]
+
     def dofullScan(self, dirs):
         
         self.status = "SCANNING"
@@ -226,55 +246,22 @@ class Monitor():
         logging.info(u"Monitor: Beginning file scan...")
         self.setStatusDetail(u"Monitor: Making a list of all files in the folders...")
 
-        filelist = utils.get_recursive_filelist( dirs )
-        self.setStatusDetail(u"Monitor: sorting recursive file list ({0} items)".format(len(filelist)))
-        filelist = sorted(filelist, key=os.path.getmtime)
-        
-        self.setStatusDetail(u"Monitor: done listing files.")
-        
         self.add_count = 0      
         self.remove_count = 0
 
-        # build a list of comics to remove
-        to_remove = []
-        
-        # get the entire comic table into memory
-        query = list(self.session.query(Comic))
-        
-        # look for missing or changed files 
-        self.setStatusDetail(u"Monitor: Removing missing or modified files from DB...")
-        #start_time = time.time()
-        for comic in query:
-            if self.checkIfRemovedOrModified( comic, self.paths ):
-                to_remove.append(comic.id)
-            if self.quit:
-                self.setStatusDetail(u"Monitor: halting scan!")
-                return
-                
-        #print time.time() - start_time, "seconds"
-        self.setStatusDetail(u"Monitor: Done removing files.")
 
+        filelist, to_remove = self.createAddRemoveLists(dirs)
+
+        self.setStatusDetail(u"Monitor: Removing missing or modified files from db ({0} files)".format(len(to_remove)), logging.INFO)
         if len(to_remove) > 0:
             self.library.deleteComics(to_remove)
-
-
-        self.setStatusDetail(u"Monitor: found {0} files to inspect...".format(len(filelist)))
-        
-        # make a list of all path strings in comic table
-        db_pathlist = [i[0] for i in list(self.session.query(Comic.path))]
-        
-        self.setStatusDetail(u"Monitor: removing already scanned files from file list")
-        for f in db_pathlist:
-            if f in filelist:
-                filelist.remove(f)
-        db_pathlist = None
 
         self.setStatusDetail(u"Monitor: {0} new files to scan...".format(len(filelist)), logging.INFO)
 
         md_list = []
         self.read_count = 0
         for filename in filelist:
-            md = self.getComicMetadata( filename )
+            md = self.getComicMetadata(filename)
             if md is not None:
                 md_list.append(md)
             self.setStatusDetailOnly(u"Monitor: {0} files: {1} scanned, {2} added to library...".format(len(filelist), self.read_count,self.add_count))

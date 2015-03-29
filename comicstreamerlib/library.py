@@ -74,6 +74,9 @@ class Library:
 
         return stats
 
+    def getComicPaths(self):
+        return self.getSession().query(Comic.id, Comic.path, Comic.mod_ts).all()
+
     def recentlyAddedComics(self, limit = 10):
         return self.getSession().query(Comic)\
                    .order_by(Comic.added_ts.desc())\
