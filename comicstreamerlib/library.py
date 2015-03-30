@@ -1,15 +1,17 @@
 """Encapsulates all data acces code to maintain the comic library"""
+from datetime import datetime
 import dateutil
 import os
 
 from sqlalchemy import func, distinct
 from sqlalchemy.orm import subqueryload
 
-import comicstreamerlib.utils as utils
-from comicstreamerlib.database import Comic, DatabaseInfo, Person, Role, Credit, Character, GenericTag, Team, Location, \
+import utils
+from database import Comic, DatabaseInfo, Person, Role, Credit, Character, GenericTag, Team, Location, \
     StoryArc, Genre, DeletedComic
-from comicstreamerlib.folders import AppFolders
+from folders import AppFolders
 from comicapi.comicarchive import ComicArchive
+from comicapi.issuestring import IssueString
 
 
 class Library:
@@ -17,6 +19,7 @@ class Library:
     def __init__(self, session_getter):
         self.getSession = session_getter
         self.comicArchiveList = []
+        self.namedEntities = {}
 
     def getSession(self):
         """SQLAlchemy session"""
@@ -71,6 +74,9 @@ class Library:
 
         return stats
 
+    def getComicPaths(self):
+        return self.getSession().query(Comic.id, Comic.path, Comic.mod_ts).all()
+
     def recentlyAddedComics(self, limit = 10):
         return self.getSession().query(Comic)\
                    .order_by(Comic.added_ts.desc())\
@@ -104,9 +110,132 @@ class Library:
                 pass
         return resultset.all()
 
+    def createComicFromMetadata(self, md):
+
+        comic = Comic()
+        # store full path, and filename and folder separately, for search efficiency,
+        # at the cost of redundant storage
+        comic.folder, comic.file = os.path.split(md.path)
+        comic.path = md.path
+
+        comic.page_count = md.page_count
+        comic.mod_ts = md.mod_ts
+        comic.hash = md.hash
+        comic.filesize = md.filesize
+        comic.thumbnail = md.thumbnail
+
+        if not md.isEmpty:
+            if md.series is not None:
+                comic.series = unicode(md.series)
+            if md.issue is not None:
+                comic.issue = unicode(md.issue)
+                comic.issue_num = IssueString(unicode(comic.issue)).asFloat()
+
+            if md.year is not None:
+                try:
+                    day = 1
+                    month = 1
+                    if md.month is not None:
+                        month = int(md.month)
+                    if md.day is not None:
+                        day = int(md.day)
+                    year = int(md.year)
+                    comic.date = datetime(year, month, day)
+                except:
+                    pass
+
+            comic.year = md.year
+            comic.month = md.month
+            comic.day = md.day
+
+            if md.volume is not None:
+                comic.volume = int(md.volume)
+            if md.publisher is not None:
+                comic.publisher = unicode(md.publisher)
+            if md.title is not None:
+                comic.title = unicode(md.title)
+            if md.comments is not None:
+                comic.comments = unicode(md.comments)
+            if md.imprint is not None:
+                comic.imprint = unicode(md.imprint)
+            if md.webLink is not None:
+                comic.weblink = unicode(md.webLink)
+
+        if md.characters is not None:
+            for c in list(set(md.characters.split(","))):
+                character = self.getNamedEntity(Character, c.strip())
+                comic.characters_raw.append(character)
+
+        if md.teams is not None:
+            for t in list(set(md.teams.split(","))):
+                team = self.getNamedEntity(Team, t.strip())
+                comic.teams_raw.append(team)
+
+        if md.locations is not None:
+            for l in list(set(md.locations.split(","))):
+                location = self.getNamedEntity(Location, l.strip())
+                comic.locations_raw.append(location)
+
+        if md.storyArc is not None:
+            for sa in list(set(md.storyArc.split(","))):
+                storyarc = self.getNamedEntity(StoryArc, sa.strip())
+                comic.storyarcs_raw.append(storyarc)
+
+        if md.genre is not None:
+            for g in list(set(md.genre.split(","))):
+                genre = self.getNamedEntity(Genre,  g.strip())
+                comic.genres_raw.append(genre)
+
+        if md.tags is not None:
+            for gt in list(set(md.tags)):
+                generictag = self.getNamedEntity(GenericTag,  gt.strip())
+                comic.generictags_raw.append(generictag)
+
+        if md.credits is not None:
+            for credit in md.credits:
+                role = self.getNamedEntity(Role, credit['role'].lower().strip())
+                person = self.getNamedEntity(Person, credit['person'].strip())
+                comic.credits_raw.append(Credit(person, role))
+
+        return comic
+
+    def getNamedEntity(self, cls, name):
+        """Gets related entities such as Characters, Persons etc by name"""
+        # this is a bit hackish, we need unique instances between successive
+        # calls for newly created entities, to avoid unique violations at flush time
+        key = (cls, name)
+        if key not in self.namedEntities.keys():
+            obj = self.getSession().query(cls).filter(cls.name == name).first()
+            self.namedEntities[key] = obj
+            if obj is None:
+                self.namedEntities[key] = cls(name=name)
+        return self.namedEntities[key]
+
+    def addComics(self, comic_list):
+        for comic in comic_list:
+            self.getSession().add(comic)
+        if len(comic_list) > 0:
+            self._dbUpdated()
+        self.getSession().commit()
+
+    def deleteComics(self, comic_id_list):
+        s = self.getSession()
+        for comic_id in comic_id_list:
+            deleted = DeletedComic()
+            deleted.comic_id = int(comic_id)
+            s.add(deleted)
+            s.delete(s.query(Comic).get(comic_id))
+        if len(comic_id_list) > 0:
+            self._dbUpdated()
+        s.commit()
+
+    def _dbUpdated(self):
+        """Updates DatabaseInfo status"""
+        self.getSession().query(DatabaseInfo).first().last_updated = datetime.utcnow()
+
     def list(self, criteria={}, paging=None):
         if paging is None:
-            paging = {'per_page': 1, 'offset': 10}
+            paging = {'per_page': 10, 'offset': 1}
 
         query = self.getSession().query(Comic)
 
