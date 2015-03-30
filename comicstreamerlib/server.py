@@ -779,7 +779,19 @@ class EntityAPIHandler(JSONResultAPIHandler):
             finalquery = querylist[0].intersect(*querylist[1:])
             
         return finalquery
-        
+
+class SearchAPIHandler(JSONResultAPIHandler):
+    def get(self,):
+        query = self.get_argument("q")
+        (results, comics) = self.library.search(unicode(query))
+        resp = json.dumps({
+            'total': len(results),
+            'facets': {f: results.groups(f) for f in results.facet_names()},
+            'comics': comics
+        })
+        self.setContentType()
+        self.write(resp)
+
 class ReaderHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self, comic_id):
@@ -1087,7 +1099,7 @@ class APIServer(tornado.web.Application):
         #    sys.exit(-1)
         
         self.dm = DataManager()
-        self.library = Library(self.dm.Session)
+        self.library = Library(self.dm.Session, self.dm.whoosh)
         
         if opts.reset or opts.reset_and_run:
             logging.info( "Deleting any existing database!")
@@ -1139,6 +1151,7 @@ class APIServer(tornado.web.Application):
             (r"/comic/([0-9]+)/reader", ReaderHandler),
             (r"/login", LoginHandler),
             # Data
+            (r"/search", SearchAPIHandler),
             (r"/dbinfo", DBInfoAPIHandler),
             (r"/version", VersionAPIHandler),
             (r"/deleted", DeletedAPIHandler),

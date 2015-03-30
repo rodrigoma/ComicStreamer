@@ -7,6 +7,7 @@ import pprint
 import uuid
 import logging
 import os
+import shutil
 
 import utils
 from config import ComicStreamerConfig
@@ -28,6 +29,7 @@ from sqlalchemy.orm.properties import \
                         RelationshipProperty
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
+from whoosh import index, fields
 
 
 SCHEMA_VERSION=3
@@ -410,10 +412,32 @@ class DataManager():
 
         session_factory = sessionmaker(bind=self.engine)
         self.Session = scoped_session(session_factory)
+        self._initWhoosh()
+
+    def _initWhoosh(self):
+        self.whooshSchema = fields.Schema(
+            id=fields.ID(stored=True, unique=True),
+            title=fields.TEXT,
+            authors=fields.KEYWORD(stored=True, commas=True, lowercase=True),
+            characters=fields.KEYWORD(stored=True, commas=True, lowercase=True))
+        ix_dir = os.path.join(AppFolders.appData(), "whoosh-idx")
+        self.whoosh_dir = ix_dir
+        if not os.path.exists(ix_dir):
+            os.makedirs(ix_dir)
+
+        if not index.exists_in(os.path.join(ix_dir)):
+            self.whoosh = index.create_in(ix_dir, self.whooshSchema)
+            #print "Creating index in %s" % ix_dir
+        else:
+            self.whoosh = index.open_dir(ix_dir)
+            #print "Opening index in %s" % ix_dir
 
     def delete(self):
         if os.path.exists( self.dbfile ):
             os.unlink( self.dbfile )
+        if os.path.exists(self.whoosh_dir):
+            self.whoosh.close()
+            shutil.rmtree(self.whoosh_dir)
             
     def create(self):
 

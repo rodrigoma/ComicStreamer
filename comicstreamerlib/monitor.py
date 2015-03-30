@@ -62,7 +62,7 @@ class Monitor():
 
         logging.debug("Monitor: started main loop.")
         self.session = self.dm.Session()
-        self.library = Library(self.dm.Session)
+        self.library = Library(self.dm.Session, self.dm.whoosh)
         
         observer = Observer()
         self.eventHandler = MonitorEventHandler(self)

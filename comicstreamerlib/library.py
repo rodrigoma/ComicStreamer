@@ -1,10 +1,13 @@
 """Encapsulates all data acces code to maintain the comic library"""
 from datetime import datetime
+import re
 import dateutil
 import os
 
 from sqlalchemy import func, distinct
 from sqlalchemy.orm import subqueryload
+from whoosh.qparser import QueryParser, MultifieldParser
+from whoosh import sorting
 
 import utils
 from database import Comic, DatabaseInfo, Person, Role, Credit, Character, GenericTag, Team, Location, \
@@ -16,8 +19,9 @@ from comicapi.issuestring import IssueString
 
 class Library:
 
-    def __init__(self, session_getter):
+    def __init__(self, session_getter, whoosh):
         self.getSession = session_getter
+        self.whoosh = whoosh
         self.comicArchiveList = []
         self.namedEntities = {}
 
@@ -212,26 +216,55 @@ class Library:
         return self.namedEntities[key]
 
     def addComics(self, comic_list):
+        writer = self.whoosh.writer()
         for comic in comic_list:
             self.getSession().add(comic)
+            self.getSession().flush()
+            ch_list = ",".join([re.sub(r'\s+', '_', c) for c in comic.characters]) or unicode("")
+            person_list = ",".join([re.sub(r'\s+', '_', a) for a in comic.persons]) or unicode("")
+            print "Adding comic id [%s] (%s) (%s)" % (comic.id, ch_list, person_list)
+            writer.update_document(
+                id=unicode(comic.id),
+                title=unicode(comic.title),
+                characters=unicode(ch_list),
+                authors=unicode(person_list))
+
         if len(comic_list) > 0:
             self._dbUpdated()
         self.getSession().commit()
+        writer.commit()
 
     def deleteComics(self, comic_id_list):
+        writer = self.whoosh.writer()
         s = self.getSession()
         for comic_id in comic_id_list:
             deleted = DeletedComic()
             deleted.comic_id = int(comic_id)
             s.add(deleted)
             s.delete(s.query(Comic).get(comic_id))
+            writer.delete_by_term('id', unicode(comic_id))
         if len(comic_id_list) > 0:
             self._dbUpdated()
         s.commit()
+        writer.commit()
 
     def _dbUpdated(self):
         """Updates DatabaseInfo status"""
         self.getSession().query(DatabaseInfo).first().last_updated = datetime.utcnow()
+
+    def search(self, query):
+        qp = MultifieldParser(['title', 'authors'], self.whoosh.schema)
+
+        query = qp.parse(query)
+        with self.whoosh.searcher() as s:
+            facets = sorting.Facets()
+            facets.add_field("authors", allow_overlap=True)
+            facets.add_field("characters", allow_overlap=True)
+
+            r = s.search(query, groupedby=facets, maptype=sorting.Count)
+            print r
+            comics = [h['id'] for h in r]
+        return r, comics
 
     def list(self, criteria={}, paging=None):
         if paging is None:

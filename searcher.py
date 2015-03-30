@@ -17,5 +17,6 @@ with ix.searcher() as s:
     facets.add_field("characters", allow_overlap=True)
 
     r = s.search(query, groupedby=facets, maptype=sorting.Count)
+    print "Total: %s" % len(r)
     print r.groups('authors')
     print r.groups('characters')
