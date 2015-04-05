@@ -7,7 +7,7 @@
         <title>Comicstreamer</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <!--<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">-->
-        <link href="bootstrap-cyborg.min.css" rel="stylesheet" />
+        <link href="/static/css/bootstrap-cyborg.min.css" rel="stylesheet" />
         
         <!--[if lt IE 9]>
           <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
@@ -163,7 +163,7 @@ hr {
           <nav>
               <ul class="pager">
                 <li class="previous" ng-class="c.hasPrevious() ? '' : 'disabled'"><a ng-click="c.previous()" href="#"><span aria-hidden="true">&larr;</span> Previous</a></li>
-                <li>{{ c.total_count }} found, showing {{ c.offset + 1 }} to {{ c.offset + c.per_page }}</li>
+                <li>{{ c.showing().total }} found, showing {{ c.showing().from }} to {{ c.showing().to }}</li>
                 <li class="next" ng-class="c.hasNext() ? '' : 'disabled'"><a ng-click="c.next()" href="#">Next <span aria-hidden="true">&rarr;</span></a></li>
               </ul>
           </nav>
@@ -188,7 +188,7 @@ hr {
           <nav>
               <ul class="pager">
                 <li class="previous" ng-class="c.hasPrevious() ? '' : 'disabled'"><a ng-click="c.previous()" href="#"><span aria-hidden="true">&larr;</span> Previous</a></li>
-                <li>{{ c.total_count }} found, showing {{ c.offset + 1 }} to {{ c.offset + c.per_page }}</li>
+                <li>{{ c.showing().total }} found, showing {{ c.showing().from }} to {{ c.showing().to }}</li>
                 <li class="next" ng-class="c.hasNext() ? '' : 'disabled'"><a ng-click="c.next()" href="#">Next <span aria-hidden="true">&rarr;</span></a></li>
               </ul>
           </nav>
@@ -196,9 +196,9 @@ hr {
   </div>
 </div><!--/row-offcanvas -->
 
-        <script type='text/javascript' src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
-        <script type='text/javascript' src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
-        <script type="texT/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.3.15/angular.min.js"></script>
+        <script type='text/javascript' src="/static/js/jquery-2.0.2.min.js"></script>
+        <script type='text/javascript' src="/static/js/bootstrap-3.0.3.min.js"></script>
+        <script type="texT/javascript" src="/static/js/angular-1.3.15.min.js"></script>
         <script type='text/javascript'>
         
             $(document).ready(function() {
@@ -234,15 +234,28 @@ angular.module("comicstreamer", [])
         }
 
         self.previous = function() {
+            if(!self.hasPrevious()) {
+                return;
+            }
             self.offset -= self.per_page;
             self.load();
         }
         self.hasNext = function() {
-            return self.offset < self.total_count;
+            return self.offset + self.per_page < self.total_count;
         }
         self.next = function() {
+            if(!self.hasNext()) {
+                return;
+            }
             self.offset += self.per_page;
             self.load();
+        }
+        self.showing = function() {
+            return {
+                total: self.total_count,
+                from: self.offset + 1,
+                to: Math.min(self.offset + self.per_page, self.total_count)
+            };
         }
 
         self.load();
