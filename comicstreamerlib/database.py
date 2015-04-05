@@ -418,8 +418,13 @@ class DataManager():
         self.whooshSchema = fields.Schema(
             id=fields.ID(stored=True, unique=True),
             title=fields.TEXT,
-            authors=fields.KEYWORD(stored=True, commas=True, lowercase=True),
-            characters=fields.KEYWORD(stored=True, commas=True, lowercase=True))
+            series=fields.TEXT,
+            year=fields.NUMERIC,
+            authors=fields.TEXT,
+            characters=fields.TEXT,
+            series_k=fields.ID(stored=True),
+            authors_k=fields.KEYWORD(stored=True, commas=True, lowercase=True),
+            characters_k=fields.KEYWORD(stored=True, commas=True, lowercase=True))
         ix_dir = os.path.join(AppFolders.appData(), "whoosh-idx")
         self.whoosh_dir = ix_dir
         if not os.path.exists(ix_dir):

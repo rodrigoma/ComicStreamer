@@ -780,17 +780,26 @@ class EntityAPIHandler(JSONResultAPIHandler):
             
         return finalquery
 
-class SearchAPIHandler(JSONResultAPIHandler):
+class SearchAPIHandler(ZippableAPIHandler):
     def get(self,):
         query = self.get_argument("q")
-        (results, comics) = self.library.search(unicode(query))
+        per_page = self.get_argument("per_page")
+        offset = self.get_argument("offset")
+
+        (results, comics) = self.library.search(unicode(query), {'per_page': int(per_page), 'offset': int(offset)})
         resp = json.dumps({
-            'total': len(results),
-            'facets': {f: results.groups(f) for f in results.facet_names()},
-            'comics': comics
-        })
+            'comics': comics,
+            'page_count': results.pagecount,
+            'total_count': results.total,
+
+            'facets': {f: results.results.groups(f) for f in results.results.facet_names()},
+
+        }, cls=alchemy_encoder(), check_circular=False)
+
         self.setContentType()
         self.write(resp)
+
+
 
 class ReaderHandler(BaseHandler):
     @tornado.web.authenticated

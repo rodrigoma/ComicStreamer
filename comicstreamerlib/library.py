@@ -220,19 +220,38 @@ class Library:
         for comic in comic_list:
             self.getSession().add(comic)
             self.getSession().flush()
-            ch_list = ",".join([re.sub(r'\s+', '_', c) for c in comic.characters]) or unicode("")
-            person_list = ",".join([re.sub(r'\s+', '_', a) for a in comic.persons]) or unicode("")
-            print "Adding comic id [%s] (%s) (%s)" % (comic.id, ch_list, person_list)
-            writer.update_document(
-                id=unicode(comic.id),
-                title=unicode(comic.title),
-                characters=unicode(ch_list),
-                authors=unicode(person_list))
+
+            writer.update_document(**self._createWhooshDoc(comic))
 
         if len(comic_list) > 0:
             self._dbUpdated()
         self.getSession().commit()
         writer.commit()
+
+    def _createWhooshDoc(self, comic):
+        authors = " ".join([a for a in comic.persons]) or unicode("")
+        characters = " ".join([c for c in comic.characters]) or unicode("")
+        d = {}
+        d['id'] = unicode(comic.id)
+        d['title'] = comic.title
+        d['series'] = comic.series
+        d['year'] = unicode(comic.year)
+        d['authors'] = unicode(authors)
+        d['characters'] = unicode(characters)
+
+        # character and persons lists for faceting and search
+        characters_k = ",".join([re.sub(r'\s+', '_', c) for c in comic.characters]) or unicode("")
+        authors_k = ",".join([re.sub(r'\s+', '_', a) for a in comic.persons]) or unicode("")
+        series_k = re.sub(r'\s+', '-', comic.series.lower())
+        d['authors_k'] = unicode(authors_k)
+        d['characters_k'] = unicode(characters_k)
+        # series also needs a different field for faceting
+        if comic.series:
+            d['series_k'] = unicode(series_k)
+
+        return d
+
+
 
     def deleteComics(self, comic_id_list):
         writer = self.whoosh.writer()
@@ -252,19 +271,35 @@ class Library:
         """Updates DatabaseInfo status"""
         self.getSession().query(DatabaseInfo).first().last_updated = datetime.utcnow()
 
-    def search(self, query):
+    def search(self, query="*", paging=None):
+        if paging is None:
+            paging = {'per_page': 10, 'offset': 1}
+
+        page = (paging['offset'] / paging['per_page']) + 1
+        pagelen = paging['per_page']
         qp = MultifieldParser(['title', 'authors'], self.whoosh.schema)
 
         query = qp.parse(query)
         with self.whoosh.searcher() as s:
             facets = sorting.Facets()
-            facets.add_field("authors", allow_overlap=True)
-            facets.add_field("characters", allow_overlap=True)
+            facets.add_field("authors_k", allow_overlap=True)
+            facets.add_field("characters_k", allow_overlap=True)
+            facets.add_field("series_k")
+            facets.add_field("year")
 
-            r = s.search(query, groupedby=facets, maptype=sorting.Count)
-            print r
-            comics = [h['id'] for h in r]
-        return r, comics
+            r = s.search_page(query, page, pagelen=pagelen, groupedby=facets, maptype=sorting.Count)
+            print r.results
+            comic_ids = [h['id'] for h in r]
+
+        query = self.getSession().query(Comic).filter(Comic.id.in_(comic_ids))
+        query = query.options(subqueryload('characters_raw'))
+        query = query.options(subqueryload('storyarcs_raw'))
+        query = query.options(subqueryload('locations_raw'))
+        query = query.options(subqueryload('teams_raw'))
+        #query = query.options(subqueryload('credits_raw'))
+        query = query.options(subqueryload('generictags_raw'))
+
+        return r, query.all()
 
     def list(self, criteria={}, paging=None):
         if paging is None:
