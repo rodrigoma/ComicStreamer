@@ -133,23 +133,15 @@ hr {
   <div id="sidebar" class="sidebar-offcanvas">
       <div class="col-md-12">
           <br />
-          <div class="panel panel-default">
+          <div class="panel panel-default" ng-cloak ng-repeat="(facet, values) in c.facets">
               <!-- Default panel contents -->
-              <div class="panel-heading panel-heading-condensed">Characters</div>
+              <div class="panel-heading panel-heading-condensed">{{ facet }}</div>
 
               <!-- Table -->
               <table class="table table-condensed">
-                <tr>
-                    <td><a href="#">Donald Duck</a></td>
-                    <td><span class="badge">548</span></td>
-                </tr>
-                  <tr>
-                    <td><a href="#">Donald Duck</a></td>
-                    <td><span class="badge">548</span></td>
-                </tr>
-                  <tr>
-                    <td><a href="#">Donald Duck</a></td>
-                    <td><span class="badge">548</span></td>
+                <tr ng-repeat="facetData in values | orderBy:'-count' | limitTo:10">
+                    <td><a href="#">{{ facetData.value }}</a></td>
+                    <td><span class="badge">{{ facetData.count }}</span></td>
                 </tr>
               </table>
           </div>
@@ -212,20 +204,28 @@ angular.module("comicstreamer", [])
 
         self.per_page = 10;
         self.offset = 0;
-        self.search = "";
+        self.search = "*";
         self.comics = [];
+        self.facets = {};
         self.total_count = 0;
 
         self.load = function() {
           params = {
-            'keyphrase': self.search,
+            'q': self.search,
             'per_page': self.per_page,
             'offset': self.offset
           }
-          $http.get('/comiclist', {'params': params}).then(function(response) {
+          $http.get('/search', {'params': params}).then(function(response) {
             resp = angular.fromJson(response.data)
             self.comics = resp.comics
             self.total_count = resp.total_count
+            angular.forEach(resp.facets, function(values, facet) {
+                var facetData = []
+                angular.forEach(values, function(count, val) {
+                    facetData.push({'value': val, 'count': count});
+                });
+                self.facets[facet] = facetData;
+            });
           });
         };
 
