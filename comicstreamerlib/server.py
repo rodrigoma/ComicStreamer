@@ -90,7 +90,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def get_current_user(self):
         return custom_get_current_user(self)
-    
+
 class GenericAPIHandler(BaseHandler):
     def validateAPIKey(self):
         if self.application.config['security']['use_api_key']:
@@ -100,7 +100,7 @@ class GenericAPIHandler(BaseHandler):
             else:
                 raise tornado.web.HTTPError(400)
                 return False
-    
+
 
 class JSONResultAPIHandler(GenericAPIHandler):
     def setContentType(self):
@@ -110,7 +110,7 @@ class JSONResultAPIHandler(GenericAPIHandler):
         per_page = self.get_argument(u"per_page", default=None)
         offset = self.get_argument(u"offset", default=None)
         # offset and max_results should be processed last
-        
+
         total_results = None
         if per_page is not None:
             total_results = query.distinct().count()
@@ -120,7 +120,7 @@ class JSONResultAPIHandler(GenericAPIHandler):
                 if total_results > max:
                     query = query.limit(max)
             except:
-                pass            
+                pass
 
         if offset is not None:
             try:
@@ -129,14 +129,14 @@ class JSONResultAPIHandler(GenericAPIHandler):
                 query = query.offset(off)
             except:
                 pass
-                
+
         return query, total_results
 
-        
+
     def processComicQueryArgs(self, query):
         def hasValue(obj):
             return obj is not None and obj != ""
-        
+
         keyphrase_filter = self.get_argument(u"keyphrase", default=None)
         series_filter = self.get_argument(u"series", default=None)
         path_filter = self.get_argument(u"path", default=None)
@@ -161,13 +161,13 @@ class JSONResultAPIHandler(GenericAPIHandler):
         if folder_filter != "":
             folder_filter = os.path.normcase(os.path.normpath(folder_filter))
             print folder_filter
-        
+
         person = None
         role = None
         if hasValue(credit_filter):
             credit_info = credit_filter.split(":")
             if len(credit_info[0]) != 0:
-                person = credit_info[0] 
+                person = credit_info[0]
                 if len(credit_info) > 1:
                     role = credit_info[1]
 
@@ -176,11 +176,11 @@ class JSONResultAPIHandler(GenericAPIHandler):
             if role is not None:
                 query = query.filter(Credit.role_id==Role.id).filter(Role.name.ilike(role.replace("*","%")))
             #query = query.filter( Comic.persons.contains(unicode(person).replace("*","%") ))
-        
+
         if hasValue(keyphrase_filter):
             keyphrase_filter = unicode(keyphrase_filter).replace("*","%")
             keyphrase_filter = "%" + keyphrase_filter + "%"
-            query = query.filter( Comic.series.ilike(keyphrase_filter) 
+            query = query.filter( Comic.series.ilike(keyphrase_filter)
                                 | Comic.title.ilike(keyphrase_filter)
                                 | Comic.publisher.ilike(keyphrase_filter)
                                 | Comic.path.ilike(keyphrase_filter)
@@ -243,21 +243,21 @@ class JSONResultAPIHandler(GenericAPIHandler):
                 query = query.filter(Comic.volume == vol)
             except:
                 pass
-                    
+
         if hasValue(start_filter):
             try:
                 dt = dateutil.parser.parse(start_filter)
                 query = query.filter( Comic.date >= dt)
             except:
                 pass
-        
+
         if hasValue(end_filter):
             try:
                 dt = dateutil.parser.parse(end_filter)
                 query = query.filter( Comic.date <= dt)
             except:
                 pass
-            
+
         if hasValue(modified_since):
             try:
                 dt=dateutil.parser.parse(modified_since)
@@ -271,21 +271,21 @@ class JSONResultAPIHandler(GenericAPIHandler):
                 query = query.filter( Comic.added_ts >= dt )
             except:
                 pass
-        
+
         if hasValue(lastread_since):
             try:
                 dt=dateutil.parser.parse(lastread_since)
                 query = query.filter( Comic.lastread_ts >= dt, Comic.lastread_ts != "" )
             except:
                 pass
-        
+
         order_key = None
         # ATB temp hack to cover "slicing" bug where
         # if no order specified, the child collections
         # get chopped off sometimes
         if not hasValue(order):
             order = "id"
-        
+
         if hasValue(order):
             if order[0] == "-":
                 order_desc = True
@@ -293,7 +293,7 @@ class JSONResultAPIHandler(GenericAPIHandler):
             else:
                 order_desc = False
             if order == "id":
-                order_key = Comic.id                
+                order_key = Comic.id
             if order == "series":
                 order_key = Comic.series
             elif order == "modified":
@@ -314,14 +314,14 @@ class JSONResultAPIHandler(GenericAPIHandler):
                 order_key = Comic.title
             elif order == "path":
                 order_key = Comic.path
-                
+
         if order_key is not None:
             if order_desc:
-                order_key = order_key.desc()                
+                order_key = order_key.desc()
             query = query.order_by(order_key)
 
-        return query    
-    
+        return query
+
 class ZippableAPIHandler(JSONResultAPIHandler):
 
     def writeResults(self, json_data):
@@ -333,10 +333,10 @@ class ZippableAPIHandler(JSONResultAPIHandler):
             zfile = gzip.GzipFile(mode = 'wb',  fileobj = zbuf, compresslevel = 9)
             zfile.write(json.dumps(json_data))
             zfile.close()
-    
+
             self.write(zbuf.getvalue())
         else:
-            self.write(json_data)       
+            self.write(json_data)
 
 class CommandAPIHandler(GenericAPIHandler):
     def get(self):
@@ -354,11 +354,11 @@ class CommandAPIHandler(GenericAPIHandler):
 
 class ImageAPIHandler(GenericAPIHandler):
     def setContentType(self, image_data):
-        
+
         imtype = imghdr.what(StringIO.StringIO(image_data))
         self.add_header("Content-type","image/{0}".format(imtype))
 
-            
+
 class VersionAPIHandler(JSONResultAPIHandler):
     def get(self):
         self.validateAPIKey()
@@ -378,14 +378,14 @@ class DBInfoAPIHandler(JSONResultAPIHandler):
                     }
         self.setContentType()
         self.write(response)
-        
+
 class ScanStatusAPIHandler(JSONResultAPIHandler):
     def get(self):
         self.validateAPIKey()
         status = self.application.monitor.status
         detail = self.application.monitor.statusdetail
         last_complete = self.application.monitor.scancomplete_ts
-        
+
         response = { 'status': status,
                      'detail':  detail,
                      'last_complete':  last_complete,
@@ -393,7 +393,7 @@ class ScanStatusAPIHandler(JSONResultAPIHandler):
                     }
         self.setContentType()
         self.write(response)
-            
+
 class ComicListAPIHandler(ZippableAPIHandler):
     def get(self):
         self.validateAPIKey()
@@ -414,8 +414,8 @@ class ComicListAPIHandler(ZippableAPIHandler):
         resultset, total_results = self.library.list(criteria, paging)
 
         json_data = resultSetToJson(resultset, "comics", total_results)
-        
-        self.writeResults(json_data)    
+
+        self.writeResults(json_data)
 
 class DeletedAPIHandler(ZippableAPIHandler):
     def get(self):
@@ -425,8 +425,8 @@ class DeletedAPIHandler(ZippableAPIHandler):
         resultset = self.library.getDeletedComics(since_filter)
 
         json_data = resultSetToJson(resultset, "deletedcomics")
-                
-        self.writeResults(json_data)    
+
+        self.writeResults(json_data)
 
 class ComicListBrowserHandler(BaseHandler):
     @tornado.web.authenticated
@@ -441,7 +441,7 @@ class ComicListBrowserHandler(BaseHandler):
             ##if '?' in self.request.uri:
             #    arg_string = '?'+self.request.uri.split('?',1)[1]
             src = default_src + arg_string
-        
+
         self.render("comic_results2.html",
                     src=src,
                     api_key=self.application.config['security']['api_key']
@@ -452,8 +452,8 @@ class FoldersBrowserHandler(BaseHandler):
     def get(self,args):
         if args is None:
             args = "/"
-        args = utils.collapseRepeats(args, "/")    
-            
+        args = utils.collapseRepeats(args, "/")
+
         self.render("folders.html",
                     args=args,
                     api_key = self.application.config['security']['api_key'])
@@ -471,7 +471,7 @@ class EntitiesBrowserHandler(BaseHandler):
         #    arg_string = "?api_key=" + self.application.config['security']['api_key']
         #else:
         #    arg_string = arg_string + "&api_key=" + self.application.config['security']['api_key']
-            
+
         self.render("entities.html",
                     args=arg_string,
                     api_key = self.application.config['security']['api_key'])
@@ -488,13 +488,13 @@ class ComicAPIHandler(JSONResultAPIHandler):
 class ComicBookmarkAPIHandler(JSONResultAPIHandler):
     def get(self, comic_id, pagenum):
         self.validateAPIKey()
-        
+
         self.application.bookmarker.setBookmark(comic_id, pagenum)
-    
+
         self.setContentType()
         response = { 'status': 0 }
         self.write(response)
-        
+
 class ComicPageAPIHandler(ImageAPIHandler):
     def get(self, comic_id, pagenum):
         self.validateAPIKey()
@@ -532,7 +532,7 @@ class FileAPIHandler(GenericAPIHandler):
                 content_type = "application/octet-stream"
 
             self.add_header("Content-type", content_type)
-            self.add_header("Content-Disposition", "attachment; filename=" + os.path.basename(obj.path))    
+            self.add_header("Content-Disposition", "attachment; filename=" + os.path.basename(obj.path))
 
             # stream response in chunks, cbr/z could be over 300MB in size!
             # TODO: check it doesn't buffer the response, it should send data chunk by chunk
@@ -545,7 +545,7 @@ class FileAPIHandler(GenericAPIHandler):
             self.finish()
 
 class FolderAPIHandler(JSONResultAPIHandler):
-    def get(self, args):            
+    def get(self, args):
         self.validateAPIKey()
         if args is not None:
             args = urllib.unquote(args)
@@ -555,7 +555,7 @@ class FolderAPIHandler(JSONResultAPIHandler):
         else:
             arglist = list()
             argcount = 0
-            
+
         folder_list = self.application.config['general']['folder_list']
 
         response = {
@@ -564,17 +564,17 @@ class FolderAPIHandler(JSONResultAPIHandler):
             'comics' : {
                 'url_path' : "",
                 'count' : 0
-            }   
-        }       
+            }
+        }
         if argcount == 0:
             # just send the list of root level folders
             for idx, val in enumerate(folder_list):
                 item = {
                     'name': val,
                     'url_path' : "/folders/" + str(idx)
-                }   
+                }
                 response['folders'].append(item)
-            
+
         else:
             try:
                 # need to validate the first arg is an index into the list
@@ -586,12 +586,12 @@ class FolderAPIHandler(JSONResultAPIHandler):
                 path = os.path.join(folder_list[folder_idx], *arglist[1:] )
                 # validate *that* folder
                 if not os.path.exists(path):
-                    print "Not exist", path, type(path)            
+                    print "Not exist", path, type(path)
                     raise Exception
-                
+
 
                 response['current'] = path
-                # create a list of subfolders    
+                # create a list of subfolders
                 for o in os.listdir(path):
                     if os.path.isdir(os.path.join(path,o)):
                         sub_path = u"/folders" + args + u"/" + o
@@ -599,7 +599,7 @@ class FolderAPIHandler(JSONResultAPIHandler):
                         item = {
                             'name': o,
                             'url_path' : sub_path
-                            }   
+                            }
                         response['folders'].append(item)
                 # see if there are any comics here
                 (ignore, total_results) = self.library.list({'folder': path}, {'per_page': 0, 'offset': 0})
@@ -610,22 +610,22 @@ class FolderAPIHandler(JSONResultAPIHandler):
             except FloatingPointError as e:
                 print e
                 raise tornado.web.HTTPError(404, "Unknown folder")
- 
+
         self.setContentType()
         self.write(response)
-            
+
 class EntityAPIHandler(JSONResultAPIHandler):
-    def get(self, args):            
+    def get(self, args):
         self.validateAPIKey()
         session = self.application.dm.Session()
-        
+
         if args is None:
             args = ""
         arglist=args.split('/')
-            
+
         arglist = filter(None, arglist)
         argcount = len(arglist)
-        
+
         entities = {
                     'characters' : Character.name,
                     'persons' : Person.name,
@@ -637,12 +637,12 @@ class EntityAPIHandler(JSONResultAPIHandler):
                     'storyarcs' : StoryArc.name,
                     'genres' : Genre.name,
                     'locations' : Location.name,
-                    'generictags' : GenericTag.name,            
+                    'generictags' : GenericTag.name,
                     'comics' : Comic
                     }
         #logging.debug("In EntityAPIHandler {0}".format(arglist))
         #/entity1/filter1/entity2/filter2...
-    
+
         # validate all entities keys in args
         #( check every other item)
         for e in arglist[0::2]:
@@ -664,9 +664,9 @@ class EntityAPIHandler(JSONResultAPIHandler):
             for e in arglist[0::2]:
                 try:
                     name_list.remove(e)
-                except:    
+                except:
                     pass
-                
+
             # Find out how many of each entity are left, and build a list of
             # dicts with name and count
             dict_list = []
@@ -682,7 +682,7 @@ class EntityAPIHandler(JSONResultAPIHandler):
                 #self.application.dm.engine.echo = False
                 #print "----", e_dict, query
                 dict_list.append(e_dict)
-                
+
             #name_list = sorted(name_list)
 
             resp = {"entities" : dict_list}
@@ -694,9 +694,9 @@ class EntityAPIHandler(JSONResultAPIHandler):
         else:
             entity = arglist[-1] # the final entity in the list
             query = self.buildQuery(session, entities, arglist)
-            
+
             if entity == "comics":
-            
+
                 query = self.processComicQueryArgs(query)
                 query, total_results = self.processPagingArgs(query)
 
@@ -704,17 +704,17 @@ class EntityAPIHandler(JSONResultAPIHandler):
                 query = query.options(subqueryload('storyarcs_raw'))
                 query = query.options(subqueryload('locations_raw'))
                 query = query.options(subqueryload('teams_raw'))
-                #query = query.options(subqueryload('credits_raw'))                
-                query = query.options(subqueryload('generictags_raw'))                
+                #query = query.options(subqueryload('credits_raw'))
+                query = query.options(subqueryload('generictags_raw'))
                 query = query.all()
-                resp = resultSetToJson(query, "comics", total_results)                
+                resp = resultSetToJson(query, "comics", total_results)
             else:
                 resp = {entity : sorted(list(set([i[0] for i in query.all()])))}
             self.application.dm.engine.echo = False
 
         self.setContentType()
         self.write(resp)
-        
+
     def buildQuery(self, session, entities, arglist):
         """
          Each entity-filter pair will be made into a separate query
@@ -742,7 +742,7 @@ class EntityAPIHandler(JSONResultAPIHandler):
                 querybase = querybase.join(comics_locations_table).join(Comic)
             if entity == 'generictags':
                 querybase = querybase.join(comics_generictags_table).join(Comic)
-        
+
         #print "Result entity is====>", entity
         #iterate over list, 2 at a time, building query list,
         #print zip(arglist[0::2], arglist[1::2])
@@ -772,12 +772,12 @@ class EntityAPIHandler(JSONResultAPIHandler):
             query = query.filter(entities[e]==v)
             querylist.append(query)
             #print query
-                        
+
         if len(querylist) == 0:
             finalquery = querybase
         else:
             finalquery = querylist[0].intersect(*querylist[1:])
-            
+
         return finalquery
 
 class SearchAPIHandler(ZippableAPIHandler):
@@ -785,8 +785,17 @@ class SearchAPIHandler(ZippableAPIHandler):
         query = self.get_argument("q")
         per_page = self.get_argument("per_page")
         offset = self.get_argument("offset")
+        filter = self.get_arguments("filter")
 
-        (results, comics) = self.library.search(unicode(query), {'per_page': int(per_page), 'offset': int(offset)})
+        filters = {}
+        if filter is not None and len(filter) > 0:
+            for f in filter:
+                f_key, f_val = f.split(':')
+                filters[f_key] = f_val
+
+
+
+        (results, comics) = self.library.search(unicode(query), {'per_page': int(per_page), 'offset': int(offset)}, filters=filters)
         resp = json.dumps({
             'comics': comics,
             'page_count': results.pagecount,
@@ -810,7 +819,7 @@ class ReaderHandler(BaseHandler):
         if obj is not None:
             #self.render("templates/reader.html", make_list=self.make_list, id=comic_id, count=obj.page_count)
             #self.render("test.html", make_list=self.make_list, id=comic_id, count=obj.page_count)
-            
+
             title = os.path.basename(obj.path)
             if obj.series is not None and obj.issue is not None:
                 title = obj.series + u" #" + obj.issue
@@ -819,15 +828,15 @@ class ReaderHandler(BaseHandler):
             if obj.lastread_page is None:
                 target_page = 0
             else:
-                target_page=obj.lastread_page   
-                
+                target_page=obj.lastread_page
+
             self.render("cbreader.html",
                         title=title,
                         id=comic_id,
                         count=obj.page_count,
                         page=target_page,
                         api_key=self.application.config['security']['api_key'])
-            
+
         def make_list(self, id, count):
             text = u""
             for i in range(count):
@@ -852,7 +861,7 @@ class MainHandler(BaseHandler):
         random_comic = self.library.randomComic()
 
         if random_comic is None:
-            random_comic = type('fakecomic', (object,), 
+            random_comic = type('fakecomic', (object,),
              {'id':0, 'series':'No Comics', 'issue':0})()
 
         self.render("index.html", stats=stats,
@@ -863,7 +872,7 @@ class MainHandler(BaseHandler):
                     server_time =  int(time.mktime(datetime.utcnow().timetuple()) * 1000),
                     api_key = self.application.config['security']['api_key']
                 )
-        
+
 class GenericPageHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self,page):
@@ -872,34 +881,34 @@ class GenericPageHandler(BaseHandler):
 class AboutPageHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self):
-        self.render("about.html", version=self.application.version)            
+        self.render("about.html", version=self.application.version)
 
 class ControlPageHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self):
-        self.render("control.html", api_key=self.application.config['security']['api_key'])     
+        self.render("control.html", api_key=self.application.config['security']['api_key'])
 
 class LogPageHandler(BaseHandler):
-    
+
     @tornado.web.authenticated
     def get(self):
 
         log_file = os.path.join(AppFolders.logs(), "ComicStreamer.log")
-        
+
         logtxt = ""
         for line in reversed(open(log_file).readlines()):
             logtxt += line.rstrip() + '\n'
 
         self.render("log.html",
                     logtxt=logtxt)
-     
+
 class ConfigPageHandler(BaseHandler):
-    
+
     fakepass = "N0TRYL@P@SSWRD"
-    
-    def is_port_available(self,port):    
+
+    def is_port_available(self,port):
         host = '127.0.0.1'
-    
+
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((host, port))
@@ -914,36 +923,36 @@ class ConfigPageHandler(BaseHandler):
         formdata['use_api_key'] = "checked" if formdata['use_api_key'] else ""
         formdata['use_authentication'] = "checked" if formdata['use_authentication'] else ""
         formdata['launch_browser'] = "checked" if formdata['launch_browser'] else ""
-        
+
         if (  self.application.config['security']['use_authentication'] ):
             formdata['password'] = ConfigPageHandler.fakepass
             formdata['password_confirm'] = ConfigPageHandler.fakepass
         else:
             formdata['password'] = ""
             formdata['password_confirm'] = ""
-            
+
         self.render("configure.html",
                     formdata=formdata,
                     success=success,
                     failure=failure)
-        
-    
-    
-    @tornado.web.authenticated    
+
+
+
+    @tornado.web.authenticated
     def get(self):
         formdata = dict()
         formdata['port'] = self.application.config['general']['port']
         formdata['folders'] = "\n".join(self.application.config['general']['folder_list'])
-        formdata['use_authentication'] = self.application.config['security']['use_authentication'] 
+        formdata['use_authentication'] = self.application.config['security']['use_authentication']
         formdata['username'] = self.application.config['security']['username']
         formdata['password'] = ""
         formdata['password_confirm'] = ""
-        formdata['use_api_key'] = self.application.config['security']['use_api_key'] 
+        formdata['use_api_key'] = self.application.config['security']['use_api_key']
         formdata['api_key'] = self.application.config['security']['api_key']
         formdata['launch_browser'] = self.application.config['general']['launch_browser']
-        
+
         self.render_config(formdata)
-         
+
     @tornado.web.authenticated
     def post(self):
         formdata = dict()
@@ -956,12 +965,12 @@ class ConfigPageHandler(BaseHandler):
         formdata['use_api_key'] = (len(self.get_arguments("use_api_key"))!=0)
         formdata['api_key'] = self.get_argument(u"api_key", default="")
         formdata['launch_browser'] = (len(self.get_arguments("launch_browser"))!=0)
-        
+
         failure_str = ""
         success_str = ""
         failure_strs = list()
         validated = False
-        
+
         old_folder_list = self.application.config['general']['folder_list']
         new_folder_list = [os.path.normcase(os.path.abspath(os.path.normpath(unicode(a)))) for a in formdata['folders'].splitlines()]
 
@@ -971,7 +980,7 @@ class ConfigPageHandler(BaseHandler):
                 if not (os.path.exists(f) and  os.path.isdir(f)):
                     failure_strs.append(u"Folder {0} doesn't exist.".format(f))
                     break
-                # check for repeat or contained 
+                # check for repeat or contained
                 for j, f1 in enumerate(new_folder_list):
                     if i != j:
                         if  f1 == f:
@@ -982,8 +991,8 @@ class ConfigPageHandler(BaseHandler):
                             raise Exception
         except Exception:
             pass
-    
-            
+
+
 
         port_failed = False
         old_port = self.application.config['general']['port']
@@ -992,24 +1001,24 @@ class ConfigPageHandler(BaseHandler):
         if not formdata['port'].isdigit():
             port_failed = True
             failure_strs.append(u"Non-numeric port value: {0}".format(formdata['port']))
-              
+
         #validate port range
-        if not port_failed:  
+        if not port_failed:
             new_port = int(formdata['port'])
             if new_port > 49151 or new_port < 1024:
                 failure_strs.append(u"Port value out of range (1024-4151): {0}".format(new_port))
                 port_failed = True
 
         #validate port availability
-        if not port_failed:  
+        if not port_failed:
             if new_port != old_port and not self.is_port_available(new_port):
                 failure_strs.append(u"Port not available: {0}".format(new_port))
                 port_failed = True
-          
+
         #validate password and username are set
         if formdata['use_authentication'] and (formdata['username']=="" or formdata['password']==""):
             failure_strs.append(u"Username and password must be filled in if the 'use authentication' box is checked")
-            
+
         #validate password pair is the same
         if formdata['password'] != formdata['password_confirm']:
             failure_strs.append(u"Password fields don't match.")
@@ -1019,18 +1028,18 @@ class ConfigPageHandler(BaseHandler):
 
         if len(failure_strs) == 0:
             validated = True
-            
+
         if validated:
             # was the password changed?
             password_changed = True
             if formdata['use_authentication']:
                 if formdata['password'] == ConfigPageHandler.fakepass:
-                    password_changed = False 
+                    password_changed = False
                 elif utils.getDigest(formdata['password']) == self.application.config['security']['password_digest']:
                     password_changed = False
             else:
                 password_changed = False
-                
+
             # find out if we need to save:
             if (new_port != old_port or
                 new_folder_list != old_folder_list or
@@ -1038,8 +1047,8 @@ class ConfigPageHandler(BaseHandler):
                 password_changed or
                 formdata['use_api_key'] != self.application.config['security']['use_api_key'] or
                 formdata['api_key'] != self.application.config['security']['api_key'] or
-                formdata['launch_browser'] != self.application.config['general']['launch_browser'] 
-               ): 
+                formdata['launch_browser'] != self.application.config['general']['launch_browser']
+               ):
                 # apply everything from the form
                 self.application.config['general']['folder_list'] = new_folder_list
                 self.application.config['general']['port'] = new_port
@@ -1054,70 +1063,70 @@ class ConfigPageHandler(BaseHandler):
                     self.application.config['security']['api_key'] = ""
                     formdata['api_key'] = ""
                 self.application.config['general']['launch_browser'] = formdata['launch_browser']
-                    
+
                 success_str = "Saved. Server restart needed"
                 self.application.config.write()
         else:
             failure_str = "<br/>".join(failure_strs)
         formdata['password'] = ""
         formdata['password_confirm'] = ""
-        
+
         self.render_config(formdata, success=success_str, failure=failure_str)
-        
+
 class LoginHandler(BaseHandler):
     def get(self):
         if  len(self.get_arguments("next")) != 0:
             next=self.get_argument("next")
         else:
             next="/"
-            
+
         #if password and user are blank, just skip to the "next"
         if (  self.application.config['security']['password_digest'] == utils.getDigest("")  and
               self.application.config['security']['username'] == ""
             ):
             self.set_secure_cookie("user", fix_username(self.application.config['security']['username']))
             self.redirect(next)
-        else:    
+        else:
             self.render('login.html', next=next)
 
     def post(self):
         next = self.get_argument("next")
 
         if  len(self.get_arguments("password")) != 0:
-                
+
             #print self.application.password, self.get_argument("password") , next
             if (utils.getDigest(self.get_argument("password"))  ==  self.application.config['security']['password_digest'] and
                 self.get_argument("username")  ==  self.application.config['security']['username']):
                 #self.set_secure_cookie("auth", self.application.config['security']['password_digest'])
                 self.set_secure_cookie("user", fix_username(self.application.config['security']['username']))
-                
+
         self.redirect(next)
-            
+
 class APIServer(tornado.web.Application):
     def __init__(self, config, opts):
-        utils.fix_output_encoding()   
-        
+        utils.fix_output_encoding()
+
         self.config = config
         self.opts = opts
-        
+
         self.port = self.config['general']['port']
         self.comicArchiveList = []
-        
+
         #if len(self.config['general']['folder_list']) == 0:
         #    logging.error("No folders on either command-line or config file.  Quitting.")
         #    sys.exit(-1)
-        
+
         self.dm = DataManager()
         self.library = Library(self.dm.Session, self.dm.whoosh)
-        
+
         if opts.reset or opts.reset_and_run:
             logging.info( "Deleting any existing database!")
             self.dm.delete()
-            
+
         # quit on a standard reset
         if opts.reset:
             sys.exit(0)
-            
+
         try:
             self.dm.create()
         except SchemaVersionException as e:
@@ -1125,8 +1134,8 @@ class APIServer(tornado.web.Application):
             logging.error(msg)
             utils.alert("Schema change", msg)
             sys.exit(-1)
-            
-        
+
+
         try:
             self.listen(self.port, no_keep_alive = True)
         except Exception as e:
@@ -1137,13 +1146,13 @@ class APIServer(tornado.web.Application):
             sys.exit(-1)
 
         logging.info( "Stream server running on port {0}...".format(self.port))
-        
+
         #http_server = tornado.httpserver.HTTPServer(self, no_keep_alive = True, ssl_options={
         #    "certfile": "server.crt",
         #    "keyfile": "server.key",
         #})
-        #http_server.listen(port+1)        
-         
+        #http_server.listen(port+1)
+
         self.version = csversion.version
 
         handlers = [
@@ -1176,7 +1185,7 @@ class APIServer(tornado.web.Application):
             (r"/scanstatus", ScanStatusAPIHandler),
             #(r'/favicon.ico', tornado.web.StaticFileHandler, {'path': os.path.join(AppFolders.appBase(), "static","images")}),
             (r'/.*', UnknownHandler),
-            
+
         ]
 
         settings = dict(
@@ -1191,7 +1200,7 @@ class APIServer(tornado.web.Application):
 
         tornado.web.Application.__init__(self, handlers, **settings)
 
-        if not opts.no_monitor:     
+        if not opts.no_monitor:
             logging.debug("Going to scan the following folders:")
             for l in self.config['general']['folder_list']:
                 logging.debug(u"   {0}".format(repr(l)))
@@ -1199,7 +1208,7 @@ class APIServer(tornado.web.Application):
             self.monitor = Monitor(self.dm, self.config['general']['folder_list'])
             self.monitor.start()
             self.monitor.scan()
-            
+
         self.bookmarker = Bookmarker(self.dm)
         self.bookmarker.start()
 
@@ -1213,11 +1222,11 @@ class APIServer(tornado.web.Application):
         # after restart, purge the DB
         sys.argv.insert(1, "--_resetdb_and_run")
         self.restart()
-        
+
     def restart(self):
         self.shutdown()
         executable = sys.executable
-            
+
         new_argv = ["--nobrowser"]
         if self.opts.quiet:
             new_argv.append("-q")
@@ -1232,21 +1241,21 @@ class APIServer(tornado.web.Application):
             os.execv(executable, new_argv)
         else:
             new_argv.insert(0, os.path.basename(sys.argv[0]) )
-            os.execl(executable, executable, *new_argv)    
-        
+            os.execl(executable, executable, *new_argv)
+
     def shutdown(self):
-        
+
         MAX_WAIT_SECONDS_BEFORE_SHUTDOWN = 3
 
         logging.info('Initiating shutdown...')
         self.monitor.stop()
         self.bookmarker.stop()
-     
+
         logging.info('Will shutdown ComicStreamer in maximum %s seconds ...', MAX_WAIT_SECONDS_BEFORE_SHUTDOWN)
         io_loop = tornado.ioloop.IOLoop.instance()
-     
+
         deadline = time.time() + MAX_WAIT_SECONDS_BEFORE_SHUTDOWN
-     
+
         def stop_loop():
             now = time.time()
             if now < deadline and (io_loop._callbacks or io_loop._timeouts):
@@ -1255,7 +1264,7 @@ class APIServer(tornado.web.Application):
                 io_loop.stop()
                 logging.info('Shutdown complete.')
         stop_loop()
-        
+
     def log_request(self, handler):
         if handler.get_status() < 300:
             log_method = logging.debug
@@ -1268,10 +1277,10 @@ class APIServer(tornado.web.Application):
         request_time = 1000.0 * handler.request.request_time()
         log_method("%d %s %.2fms", handler.get_status(),
                    handler._request_summary(), request_time)
-        
+
     def run(self):
         tornado.ioloop.IOLoop.instance().start()
-    
+
     def runInThread(self):
         import threading
         t = threading.Thread(target=self.run)

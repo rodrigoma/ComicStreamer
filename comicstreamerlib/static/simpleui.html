@@ -8,7 +8,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <!--<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">-->
         <link href="/static/css/bootstrap-cyborg.min.css" rel="stylesheet" />
-        
+
         <!--[if lt IE 9]>
           <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
         <![endif]-->
@@ -17,7 +17,7 @@
         <link rel="apple-touch-icon" sizes="72x72" href="/bootstrap/img/apple-touch-icon-72x72.png" />
         <link rel="apple-touch-icon" sizes="114x114" href="/bootstrap/img/apple-touch-icon-114x114.png" />
 
-        
+
         <style type="text/css">
             body,html,.row-offcanvas {
   height:100%;
@@ -57,7 +57,7 @@ hr {
     transition: all 0.25s ease-out;
     width:calc(100% + 220px);
   }
-    
+
   .row-offcanvas-left
   {
     left: -220px;
@@ -99,7 +99,7 @@ hr {
     </head>
 
     <body ng-controller="MainCtrl as c">
-        
+
         <div class="navbar navbar-inverse navbar-fixed-top">
             <div class="container">
                 <div class="navbar-header">
@@ -140,7 +140,7 @@ hr {
               <!-- Table -->
               <table class="table table-condensed">
                 <tr ng-repeat="facetData in values | orderBy:'-count' | limitTo:10">
-                    <td><a href="#">{{ facetData.value }}</a></td>
+                    <td><a ng-click="c.toggleFacet(facet, facetData.value)" href="#">{{ facetData.value }}</a></td>
                     <td><span class="badge">{{ facetData.count }}</span></td>
                 </tr>
               </table>
@@ -192,7 +192,7 @@ hr {
         <script type='text/javascript' src="/static/js/bootstrap-3.0.3.min.js"></script>
         <script type="texT/javascript" src="/static/js/angular-1.3.15.min.js"></script>
         <script type='text/javascript'>
-        
+
             $(document).ready(function() {
   $('[data-toggle=offcanvas]').click(function() {
     $('.row-offcanvas').toggleClass('active');
@@ -209,12 +209,20 @@ angular.module("comicstreamer", [])
         self.facets = {};
         self.total_count = 0;
 
+        self.filters = {};
+
         self.load = function() {
-          params = {
+          var params = {
             'q': self.search,
             'per_page': self.per_page,
             'offset': self.offset
           }
+          angular.forEach(self.filters, function(val, facet) {
+              if(!('filter' in params)) {
+                  params['filter'] = [];
+              }
+              params['filter'].push(facet + ":" + val);
+          });
           $http.get('/search', {'params': params}).then(function(response) {
             resp = angular.fromJson(response.data)
             self.comics = resp.comics
@@ -257,13 +265,21 @@ angular.module("comicstreamer", [])
                 to: Math.min(self.offset + self.per_page, self.total_count)
             };
         }
+        self.toggleFacet = function(facet, val) {
+            if(facet in self.filters) {
+                delete self.filters[facet];
+            } else {
+                self.filters[facet] = val
+            }
+            self.load();
+        };
 
         self.load();
 
     }] );
-        
+
         </script>
-        
-        
+
+
     </body>
 </html>

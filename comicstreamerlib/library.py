@@ -8,6 +8,7 @@ from sqlalchemy import func, distinct
 from sqlalchemy.orm import subqueryload
 from whoosh.qparser import QueryParser, MultifieldParser
 from whoosh import sorting
+from whoosh import query as w_query
 
 import utils
 from database import Comic, DatabaseInfo, Person, Role, Credit, Character, GenericTag, Team, Location, \
@@ -271,15 +272,22 @@ class Library:
         """Updates DatabaseInfo status"""
         self.getSession().query(DatabaseInfo).first().last_updated = datetime.utcnow()
 
-    def search(self, query="*", paging=None):
+    def search(self, query="*", paging=None, filters=None):
         if paging is None:
             paging = {'per_page': 10, 'offset': 1}
+
 
         page = (paging['offset'] / paging['per_page']) + 1
         pagelen = paging['per_page']
         qp = MultifieldParser(['title', 'authors'], self.whoosh.schema)
 
         query = qp.parse(query)
+        query_f = []
+        if filters is not None:
+            for (key, val) in filters.items():
+                query_f.append(w_query.Term(key, val))
+            query_f = w_query.And(query_f)
+
         with self.whoosh.searcher() as s:
             facets = sorting.Facets()
             facets.add_field("authors_k", allow_overlap=True)
@@ -287,19 +295,22 @@ class Library:
             facets.add_field("series_k")
             facets.add_field("year")
 
-            r = s.search_page(query, page, pagelen=pagelen, groupedby=facets, maptype=sorting.Count)
-            print r.results
+            r = s.search_page(query, page, filter=query_f, pagelen=pagelen, groupedby=facets, maptype=sorting.Count)
+
             comic_ids = [h['id'] for h in r]
 
-        query = self.getSession().query(Comic).filter(Comic.id.in_(comic_ids))
-        query = query.options(subqueryload('characters_raw'))
-        query = query.options(subqueryload('storyarcs_raw'))
-        query = query.options(subqueryload('locations_raw'))
-        query = query.options(subqueryload('teams_raw'))
-        #query = query.options(subqueryload('credits_raw'))
-        query = query.options(subqueryload('generictags_raw'))
+        comics = []
+        if len(comic_ids) > 0:
+            query = self.getSession().query(Comic).filter(Comic.id.in_(comic_ids))
+            query = query.options(subqueryload('characters_raw'))
+            query = query.options(subqueryload('storyarcs_raw'))
+            query = query.options(subqueryload('locations_raw'))
+            query = query.options(subqueryload('teams_raw'))
+            #query = query.options(subqueryload('credits_raw'))
+            query = query.options(subqueryload('generictags_raw'))
+            comics = query.all()
 
-        return r, query.all()
+        return r, comics
 
     def list(self, criteria={}, paging=None):
         if paging is None:
