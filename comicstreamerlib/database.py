@@ -421,6 +421,7 @@ class DataManager():
             series=fields.TEXT,
             year=fields.NUMERIC,
             authors=fields.TEXT,
+            comments=fields.TEXT,
             characters=fields.TEXT,
             series_k=fields.ID(stored=True),
             authors_k=fields.KEYWORD(stored=True, commas=True, lowercase=True),

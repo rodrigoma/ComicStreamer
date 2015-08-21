@@ -236,9 +236,10 @@ class Library:
         d['id'] = unicode(comic.id)
         d['title'] = comic.title
         d['series'] = comic.series
-        d['year'] = unicode(comic.year)
+        d['year'] = unicode(comic.year or '0')
         d['authors'] = unicode(authors)
         d['characters'] = unicode(characters)
+        d['comments'] = unicode(comic.comments)
 
         # character and persons lists for faceting and search
         characters_k = ",".join([re.sub(r'\s+', '_', c) for c in comic.characters]) or unicode("")
