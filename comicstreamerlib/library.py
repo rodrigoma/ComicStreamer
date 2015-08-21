@@ -221,8 +221,9 @@ class Library:
         for comic in comic_list:
             self.getSession().add(comic)
             self.getSession().flush()
-
-            writer.update_document(**self._createWhooshDoc(comic))
+            comic_fields = self._createWhooshDoc(comic)
+            print comic_fields
+            writer.update_document(**comic_fields)
 
         if len(comic_list) > 0:
             self._dbUpdated()
@@ -236,7 +237,8 @@ class Library:
         d['id'] = unicode(comic.id)
         d['title'] = comic.title
         d['series'] = comic.series
-        d['year'] = unicode(comic.year or '0')
+        if comic.year is not None:
+            d['year'] = unicode(comic.year)
         d['authors'] = unicode(authors)
         d['characters'] = unicode(characters)
         d['comments'] = unicode(comic.comments)
