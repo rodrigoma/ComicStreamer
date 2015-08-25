@@ -25,6 +25,7 @@ import tornado.escape
 import tornado.ioloop
 import tornado.web
 import urllib
+import mimetypes
 from urllib2 import quote
 
 
@@ -62,6 +63,8 @@ from options import Options
 from bonjour import BonjourThread
 from bookmarker import Bookmarker
 
+from library import Library
+
 # add webp test to imghdr in case it isn't there already
 def my_test_webp(h, f):
     if h.startswith(b'RIFF') and h[8:12] == b'WEBP':
@@ -80,6 +83,11 @@ def custom_get_current_user(handler):
     return  user
 
 class BaseHandler(tornado.web.RequestHandler):
+
+    @property
+    def library(self):
+        return self.application.library
+
     def get_current_user(self):
         return custom_get_current_user(self)
     
@@ -349,24 +357,7 @@ class ImageAPIHandler(GenericAPIHandler):
         
         imtype = imghdr.what(StringIO.StringIO(image_data))
         self.add_header("Content-type","image/{0}".format(imtype))
-    
-    def getImageData(self, comic_id, pagenum):
-        #TODO handle errors in this func!
-        session = self.application.dm.Session()
-        obj = session.query(Comic).filter(Comic.id == int(comic_id)).first()
-        image_data = None
-        default_img_file = AppFolders.imagePath("default.jpg")
 
-        if obj is not None:
-            if int(pagenum) < obj.page_count:
-                ca = self.application.getComicArchive(obj.path)
-                image_data = ca.getPage(int(pagenum))
-    
-        if image_data is None:
-            with open(default_img_file, 'rb') as fd:
-                image_data = fd.read()
-            
-        return image_data
             
 class VersionAPIHandler(JSONResultAPIHandler):
     def get(self):
@@ -379,12 +370,11 @@ class VersionAPIHandler(JSONResultAPIHandler):
 class DBInfoAPIHandler(JSONResultAPIHandler):
     def get(self):
         self.validateAPIKey()
-        session = self.application.dm.Session()
-        obj = session.query(DatabaseInfo).first()   
-        response = { 'id': obj.uuid,
-                    'last_updated':  obj.last_updated.isoformat(),
-                    'created':  obj.created.isoformat(),
-                    'comic_count': session.query(Comic).count()
+        stats = self.library.getStats()
+        response = { 'id': stats['uuid'],
+                    'last_updated':  stats['last_updated'].isoformat(),
+                    'created':  stats['created'].isoformat(),
+                    'comic_count': stats['total']
                     }
         self.setContentType()
         self.write(response)
@@ -408,55 +398,32 @@ class ComicListAPIHandler(ZippableAPIHandler):
     def get(self):
         self.validateAPIKey()
 
-        # create a query on all comics
-        session = self.application.dm.Session()
-        query = session.query(Comic)
-        
-        query = self.processComicQueryArgs(query)
-        query, total_results = self.processPagingArgs(query)
-        
-        #print "-------->", query
-        
-        #import code; code.interact(local=locals())
-        logging.debug( "before query" )
-        
-        #self.application.dm.engine.echo = True
-        query = query.options(subqueryload('characters_raw'))
-        query = query.options(subqueryload('storyarcs_raw'))
-        query = query.options(subqueryload('locations_raw'))
-        query = query.options(subqueryload('teams_raw'))
-        #query = query.options(subqueryload('credits_raw'))
-        query = query.options(subqueryload('generictags_raw'))
-        
-        resultset = query.all()
+        criteria_args = [
+            u"keyphrase", u"series", u"path", u"folder", u"title", u"start_date",
+            u"end_date", u"added_since", u"modified_since", u"lastread_since",
+            u"order", u"character", u"team", u"location", u"storyarc", u"volume",
+            u"publisher", u"credit", u"tag", u"genre"
+        ]
 
+        criteria = {key: self.get_argument(key, default=None) for key in criteria_args}
+        paging = {
+            'per_page': self.get_argument(u"per_page", default=None),
+            'offset': self.get_argument(u"offset", default=None)
+        }
 
-        logging.debug( "after query" )
-        #self.application.dm.engine.echo = False
-        
-        logging.debug( "before JSON render" )
+        resultset, total_results = self.library.list(criteria, paging)
+
         json_data = resultSetToJson(resultset, "comics", total_results)
-        logging.debug( "after JSON render" )
         
         self.writeResults(json_data)    
 
 class DeletedAPIHandler(ZippableAPIHandler):
     def get(self):
         self.validateAPIKey()
-    
-        # get all deleted comics first
-        session = self.application.dm.Session()
-        resultset = session.query(DeletedComic)
-        
+
         since_filter = self.get_argument(u"since", default=None)
-        
-        # now winnow it down with timestampe, if requested
-        if since_filter is not None:
-            try:
-                dt=dateutil.parser.parse(since_filter)
-                resultset = resultset.filter( DeletedComic.ts >= dt )
-            except:
-                pass                
+        resultset = self.library.getDeletedComics(since_filter)
+
         json_data = resultSetToJson(resultset, "deletedcomics")
                 
         self.writeResults(json_data)    
@@ -512,8 +479,9 @@ class EntitiesBrowserHandler(BaseHandler):
 class ComicAPIHandler(JSONResultAPIHandler):
     def get(self, id):
         self.validateAPIKey()
-        session = self.application.dm.Session()
-        result = session.query(Comic).filter(Comic.id == int(id)).all()
+
+        result = [self.library.getComic(id)]
+
         self.setContentType()
         self.write(resultSetToJson(result, "comics"))
 
@@ -530,29 +498,22 @@ class ComicBookmarkAPIHandler(JSONResultAPIHandler):
 class ComicPageAPIHandler(ImageAPIHandler):
     def get(self, comic_id, pagenum):
         self.validateAPIKey()
-        
-        image_data = self.getImageData(comic_id, pagenum)
-        
+
         max_height = self.get_argument(u"max_height", default=None)
-        if max_height is not None:
-            try:
-                max_h = int(max_height)
-                image_data = utils.resizeImage(max_h, image_data)
-            except Exception as e:
-                logging.error(e)
-                pass
-        
+
+        image_data = self.library.getComicPage(comic_id, pagenum, max_height)
+
         self.setContentType(image_data)
         self.write(image_data)
 
 class ThumbnailAPIHandler(ImageAPIHandler):
     def get(self, comic_id):
         self.validateAPIKey()
-        session = self.application.dm.Session()
-        comic = session.query(Comic).get(comic_id)
-        if comic.thumbnail != None:
+        thumbnail = self.library.getComicThumbnail(comic_id)
+
+        if thumbnail != None:
             self.setContentType('image/jpg')
-            self.write(comic.thumbnail)
+            self.write(thumbnail)
         else:
             default_img_file = AppFolders.imagePath("default.jpg")
             with open(default_img_file, 'rb') as fd:
@@ -564,27 +525,28 @@ class FileAPIHandler(GenericAPIHandler):
     def get(self, comic_id):
         self.validateAPIKey()
 
-        #TODO handle errors in this func!
-        session = self.application.dm.Session()
-        obj = session.query(Comic).filter(Comic.id == int(comic_id)).first()
+        obj = self.library.getComic(comic_id)
         if obj is not None:
-            ca = self.application.getComicArchive(obj.path)
-            if ca.isZip():
-                self.add_header("Content-type","application/zip, application/octet-stream")
-            else:
-                self.add_header("Content-type","application/x-rar-compressed, application/octet-stream")
-                
+            (content_type, encoding) = mimetypes.guess_type(obj.path)
+            if content_type is None:
+                content_type = "application/octet-stream"
+
+            self.add_header("Content-type", content_type)
             self.add_header("Content-Disposition", "attachment; filename=" + os.path.basename(obj.path))    
 
-            with open(obj.path, 'rb') as fd:
-                file_data = fd.read()
-    
-            self.write(file_data)
+            # stream response in chunks, cbr/z could be over 300MB in size!
+            # TODO: check it doesn't buffer the response, it should send data chunk by chunk
+            with open(obj.path, 'rb') as f:
+                while True:
+                    data = f.read(2048 * 1024)
+                    if not data:
+                        break
+                    self.write(data)
+            self.finish()
 
 class FolderAPIHandler(JSONResultAPIHandler):
     def get(self, args):            
         self.validateAPIKey()
-        session = self.application.dm.Session()
         if args is not None:
             args = urllib.unquote(args)
             arglist = args.split('/')
@@ -640,7 +602,8 @@ class FolderAPIHandler(JSONResultAPIHandler):
                             }   
                         response['folders'].append(item)
                 # see if there are any comics here
-                response['comics']['count'] = session.query(Comic).filter(Comic.folder == path).count()
+                (ignore, total_results) = self.library.list({'folder': path}, {'per_page': 0, 'offset': 0})
+                response['comics']['count'] = total_results
                 comic_path = u"/comiclist?folder=" + urllib.quote(u"{0}".format(path).encode('utf-8'))
                 response['comics']['url_path'] = comic_path
 
@@ -820,8 +783,8 @@ class EntityAPIHandler(JSONResultAPIHandler):
 class ReaderHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self, comic_id):
-        session = self.application.dm.Session()
-        obj = session.query(Comic).filter(Comic.id == int(comic_id)).first()
+
+        obj = self.library.getComic(comic_id)
         page_data = None
         if obj is not None:
             #self.render("templates/reader.html", make_list=self.make_list, id=comic_id, count=obj.page_count)
@@ -858,28 +821,19 @@ class UnknownHandler(BaseHandler):
 class MainHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self):
-        session = self.application.dm.Session()
-        stats=dict()
-        stats['total'] = session.query(Comic).count()
-        dt = session.query(DatabaseInfo).first().last_updated
-        stats['last_updated'] = utils.utc_to_local(dt).strftime("%Y-%m-%d %H:%M:%S")
-        dt = session.query(DatabaseInfo).first().created
-        stats['created'] = utils.utc_to_local(dt).strftime("%Y-%m-%d %H:%M:%S")
-        
-        stats['series'] = len(set(session.query(Comic.series)))
-        stats['persons'] = session.query(Person).count()
-        
-        recently_added_comics = session.query(Comic).order_by(Comic.added_ts.desc()).limit(10)
-        recently_read_comics = session.query(Comic).filter(Comic.lastread_ts != "").order_by(Comic.lastread_ts.desc()).limit(10)
-        
-        roles_query = session.query(Role.name)
-        roles_list = [i[0] for i in list(roles_query)]
+        stats = self.library.getStats()
+        stats['last_updated'] = utils.utc_to_local(stats['last_updated']).strftime("%Y-%m-%d %H:%M:%S")
+        stats['created'] = utils.utc_to_local(stats['created']).strftime("%Y-%m-%d %H:%M:%S")
 
-        # SQLite specific random call
-        random_comic = session.query(Comic).order_by(func.random()).first()
+        recently_added_comics = self.library.recentlyAddedComics(10)
+        recently_read_comics = self.library.recentlyReadComics(10)
+        roles_list = [role.name for role in self.library.getRoles()]
+        random_comic = self.library.randomComic()
+
         if random_comic is None:
             random_comic = type('fakecomic', (object,), 
              {'id':0, 'series':'No Comics', 'issue':0})()
+
         self.render("index.html", stats=stats,
                     random_comic=random_comic,
                     recently_added = list(recently_added_comics),
@@ -1133,6 +1087,7 @@ class APIServer(tornado.web.Application):
         #    sys.exit(-1)
         
         self.dm = DataManager()
+        self.library = Library(self.dm.Session)
         
         if opts.reset or opts.reset_and_run:
             logging.info( "Deleting any existing database!")
@@ -1169,7 +1124,7 @@ class APIServer(tornado.web.Application):
         #http_server.listen(port+1)        
          
         self.version = csversion.version
-        
+
         handlers = [
             # Web Pages
             (r"/", MainHandler),
@@ -1299,18 +1254,3 @@ class APIServer(tornado.web.Application):
         import threading
         t = threading.Thread(target=self.run)
         t.start()
-        
-    def getComicArchive(self, path):
-        # should also look at modified time of file
-        for ca in self.comicArchiveList:
-            if ca.path == path:
-                # remove from list and put at end
-                self.comicArchiveList.remove(ca)
-                self.comicArchiveList.append(ca)
-                return ca
-        else:
-            ca = ComicArchive(path, default_image_path=AppFolders.imagePath("default.jpg"))
-            self.comicArchiveList.append(ca)
-            if len(self.comicArchiveList) > 10:
-                self.comicArchiveList.pop(0)
-            return ca

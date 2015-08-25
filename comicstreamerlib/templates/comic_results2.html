@@ -51,6 +51,7 @@
                         month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
                         str = month_names[comic.month-1] + " " + str;
                     }
+                                        
                     str = '(' + str + ')'
                     $(cd).find(".cd_date").text(str);
                 }
@@ -103,7 +104,10 @@
                 var val = record[this.id];
                 if (this.id == 'datex')
                 {
-                    if (record['month'] != "" && record['month'] != "")
+		    if (record['day'] != "" && record['month'] != "" && record['year'] != "")
+                    {
+                        val = record['day'] + '/' + record['month'] + '/' + record['year'];
+                    } else if (record['month'] != "" && record['year'] != "")
                     {
                         val = record['month'] + '/' + record['year'];
                     }

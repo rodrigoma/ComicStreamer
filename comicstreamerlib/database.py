@@ -14,6 +14,7 @@ from comicstreamerlib.folders import AppFolders
 
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import deferred
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, Float, String, DateTime, LargeBinary, Table, ForeignKey
 from sqlalchemy.orm import relationship, backref
@@ -26,6 +27,8 @@ from sqlalchemy.orm.properties import \
                         CompositeProperty,\
                         RelationshipProperty
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
+
+
 
 SCHEMA_VERSION=3
 
@@ -179,7 +182,7 @@ class Comic(Base):
     deleted_ts = Column(DateTime)
     lastread_ts = Column(DateTime)
     lastread_page = Column(Integer)
-    thumbnail = Column(LargeBinary)
+    thumbnail = deferred(Column(LargeBinary))
     
     #hash = Column(String)
     added_ts = Column(DateTime, default=datetime.utcnow)  # when the comic was added to the DB
@@ -188,17 +191,17 @@ class Comic(Base):
     credits_raw = relationship('Credit', #secondary=credits_,
                                 cascade="all, delete", )#, backref='comics')
     characters_raw = relationship('Character', secondary=comics_characters_table,
-                                cascade="delete")#, backref='comics')
+                                cascade="save-update,delete")#, backref='comics')
     teams_raw = relationship('Team', secondary=comics_teams_table,
-                                cascade="delete") #)#, backref='comics')
+                                cascade="save-update,delete") #)#, backref='comics')
     locations_raw = relationship('Location', secondary=comics_locations_table,
-                                cascade="delete") #, backref='comics')
+                                cascade="save-update,delete") #, backref='comics')
     storyarcs_raw = relationship('StoryArc', secondary=comics_storyarcs_table,
-                                cascade="delete") #, backref='comics')
+                                cascade="save-update,delete") #, backref='comics')
     generictags_raw = relationship('GenericTag', secondary=comics_generictags_table,
-                                cascade="delete") #, backref='comics')
+                                cascade="save-update,delete") #, backref='comics')
     genres_raw = relationship('Genre', secondary=comics_genres_table,
-                                cascade="delete") #, backref='comics')
+                                cascade="save-update,delete") #, backref='comics')
 
     persons_raw = relationship("Person",
                 secondary="join(Credit, Person, Credit.person_id == Person.id)",
@@ -403,19 +406,19 @@ class DataManager():
     def __init__(self):
         self.dbfile = os.path.join(AppFolders.appData(), "comicdb.sqlite")
 
+        self.engine = create_engine('sqlite:///'+ self.dbfile, echo=False)
+
+        session_factory = sessionmaker(bind=self.engine)
+        self.Session = scoped_session(session_factory)
+
     def delete(self):
         if os.path.exists( self.dbfile ):
             os.unlink( self.dbfile )
             
     def create(self):
-        
-        self.engine = create_engine('sqlite:///'+ self.dbfile, echo=False)
-
-        session_factory = sessionmaker(bind=self.engine)
-        self.Session = scoped_session(session_factory) 
 
         # if we don't have a UUID for this DB, add it.
-        Base.metadata.create_all(self.engine) 
+        Base.metadata.create_all(self.engine)
 
         session = self.Session()
  

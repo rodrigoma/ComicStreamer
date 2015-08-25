@@ -11,5 +11,5 @@ PyYAML==3.11
 six==1.9.0
 SQLAlchemy==0.9.8
 tornado==4.0.2
--e git+https://github.com/matiasb/python-unrar.git@1010cf5f6fcf09a9b1fe7c958faf0167fafaa7d9#egg=unrar-master
+unrar==0.3
 watchdog==0.8.2
