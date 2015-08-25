@@ -41,6 +41,7 @@ The FOLDER_LIST is a list of folders that will be scanned recursively
 for comics to add to the database (persisted)
 
   -p, --port                 The port the server should listen on. (persisted)
+      --webroot              Webroot for reverse proxy (persisted)
   -r, --reset                Purge the existing database and quit
   -d, --debug                More verbose console output   
   -q, --quiet                No console output   
@@ -61,6 +62,7 @@ for comics to add to the database (persisted)
         self.quiet = False
         self.launch_browser = True
         self.reset_and_run = False
+        self.webroot = None
         
     def display_msg_and_quit( self, msg, code, show_help=False ):
         appname = os.path.basename(sys.argv[0])
@@ -84,7 +86,7 @@ for comics to add to the database (persisted)
         try:
             opts, args = getopt.getopt( input_args, 
                        "dp:hrq", 
-                       [ "help", "port=", "version", "reset", "debug", "quiet",
+                       [ "help", "port=", "webroot=", "version", "reset", "debug", "quiet",
                     "nomonitor", "nobrowser",
                     "_resetdb_and_run", #private
                     ] )
@@ -107,6 +109,8 @@ for comics to add to the database (persisted)
                     self.port = int(a)
                 except:
                     pass
+            if o == "--webroot":
+                self.webroot = a
             if o  == "--nomonitor":
                 self.no_monitor = True
             if o  == "--nobrowser":

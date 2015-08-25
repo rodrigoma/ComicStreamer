@@ -25,10 +25,10 @@
             function populateComicDetails(cd, comic)
             {
 
-                var thumb_url = '/comic/'+ comic.id +'/thumbnail?api_key={{api_key}}';
-                var reader_url = '/comic/'+ comic.id +'/reader?api_key={{api_key}}';
-                var download_url = '/comic/'+ comic.id +'/file?api_key={{api_key}}';
-                var json_url = '/comic/'+ comic.id +'?api_key={{api_key}}';
+                var thumb_url = '{{handler.webroot}}/comic/'+ comic.id +'/thumbnail?api_key={{api_key}}';
+                var reader_url = '{{handler.webroot}}/comic/'+ comic.id +'/reader?api_key={{api_key}}';
+                var download_url = '{{handler.webroot}}/comic/'+ comic.id +'/file?api_key={{api_key}}';
+                var json_url = '{{handler.webroot}}/comic/'+ comic.id +'?api_key={{api_key}}';
 
                 $(cd).find('.cd_thumbnail').attr('src', thumb_url);
                 $(cd).find(".cd_reader_link").attr('href', reader_url);

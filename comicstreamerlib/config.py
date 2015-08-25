@@ -42,7 +42,8 @@ class ComicStreamerConfig(ConfigObj):
             install_id=string(default="")
             folder_list=string_list(default=list())
             launch_browser=boolean(default="True")
-            first_run=boolean(default="True")            
+            first_run=boolean(default="True")    
+            webroot=string(default="")        
             [security]
             use_authentication=boolean(default="False")
             username=string(default="")
@@ -105,6 +106,9 @@ class ComicStreamerConfig(ConfigObj):
         if opts.folder_list is not None:
             self['general']['folder_list'] = [os.path.abspath(os.path.normpath(unicode(a))) for a in opts.folder_list]
             modified = True
-
+        if opts.webroot is not None:
+            self['general']['webroot'] = opts.webroot
+            modified = True
+            
         if modified:
             self.write()

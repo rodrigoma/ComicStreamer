@@ -85,6 +85,10 @@ def custom_get_current_user(handler):
 class BaseHandler(tornado.web.RequestHandler):
 
     @property
+    def webroot(self):
+        return self.application.webroot
+        
+    @property
     def library(self):
         return self.application.library
 
@@ -436,7 +440,7 @@ class ComicListBrowserHandler(BaseHandler):
         if entity_src is not None:
             src=entity_src
         else:
-            default_src="/comiclist"
+            default_src=self.webroot + "/comiclist"
             arg_string = ""
             ##if '?' in self.request.uri:
             #    arg_string = '?'+self.request.uri.split('?',1)[1]
@@ -571,7 +575,7 @@ class FolderAPIHandler(JSONResultAPIHandler):
             for idx, val in enumerate(folder_list):
                 item = {
                     'name': val,
-                    'url_path' : "/folders/" + str(idx)
+                    'url_path' : self.webroot + "/folders/" + str(idx)
                 }   
                 response['folders'].append(item)
             
@@ -604,7 +608,7 @@ class FolderAPIHandler(JSONResultAPIHandler):
                 # see if there are any comics here
                 (ignore, total_results) = self.library.list({'folder': path}, {'per_page': 0, 'offset': 0})
                 response['comics']['count'] = total_results
-                comic_path = u"/comiclist?folder=" + urllib.quote(u"{0}".format(path).encode('utf-8'))
+                comic_path = self.webroot + u"/comiclist?folder=" + urllib.quote(u"{0}".format(path).encode('utf-8'))
                 response['comics']['url_path'] = comic_path
 
             except FloatingPointError as e:
@@ -912,6 +916,7 @@ class ConfigPageHandler(BaseHandler):
     def get(self):
         formdata = dict()
         formdata['port'] = self.application.config['general']['port']
+        formdata['webroot'] = self.application.config['general']['webroot']
         formdata['folders'] = "\n".join(self.application.config['general']['folder_list'])
         formdata['use_authentication'] = self.application.config['security']['use_authentication'] 
         formdata['username'] = self.application.config['security']['username']
@@ -927,6 +932,7 @@ class ConfigPageHandler(BaseHandler):
     def post(self):
         formdata = dict()
         formdata['port'] = self.get_argument(u"port", default="")
+        formdata['webroot'] = self.get_argument(u"webroot", default="")
         formdata['folders'] = self.get_argument(u"folders", default="")
         formdata['use_authentication'] = (len(self.get_arguments("use_authentication"))!=0)
         formdata['username'] = self.get_argument(u"username", default="")
@@ -1012,6 +1018,7 @@ class ConfigPageHandler(BaseHandler):
                 
             # find out if we need to save:
             if (new_port != old_port or
+                formdata['webroot'] != self.application.config['general']['webroot'] or
                 new_folder_list != old_folder_list or
                 formdata['username'] != self.application.config['security']['username'] or
                 password_changed or
@@ -1022,6 +1029,7 @@ class ConfigPageHandler(BaseHandler):
                 # apply everything from the form
                 self.application.config['general']['folder_list'] = new_folder_list
                 self.application.config['general']['port'] = new_port
+                self.application.config['general']['webroot'] = formdata['webroot']
                 self.application.config['security']['use_authentication'] = formdata['use_authentication']
                 self.application.config['security']['username'] = formdata['username']
                 if formdata['password'] != ConfigPageHandler.fakepass:
@@ -1034,13 +1042,13 @@ class ConfigPageHandler(BaseHandler):
                     formdata['api_key'] = ""
                 self.application.config['general']['launch_browser'] = formdata['launch_browser']
                     
-                success_str = "Saved. Server restart needed"
+                success_str = "Saved. Server restart needed"                
                 self.application.config.write()
         else:
             failure_str = "<br/>".join(failure_strs)
         formdata['password'] = ""
         formdata['password_confirm'] = ""
-        
+        logging.info("Config: " + str(self.application.config))
         self.render_config(formdata, success=success_str, failure=failure_str)
         
 class LoginHandler(BaseHandler):
@@ -1080,6 +1088,8 @@ class APIServer(tornado.web.Application):
         self.opts = opts
         
         self.port = self.config['general']['port']
+        self.webroot = self.config['general']['webroot']
+        
         self.comicArchiveList = []
         
         #if len(self.config['general']['folder_list']) == 0:
@@ -1127,31 +1137,31 @@ class APIServer(tornado.web.Application):
 
         handlers = [
             # Web Pages
-            (r"/", MainHandler),
-            (r"/(.*)\.html", GenericPageHandler),
-            (r"/about", AboutPageHandler),
-            (r"/control", ControlPageHandler),
-            (r"/configure", ConfigPageHandler),
-            (r"/log", LogPageHandler),
-            (r"/comiclist/browse", ComicListBrowserHandler),
-            (r"/folders/browse(/.*)*", FoldersBrowserHandler),
-            (r"/entities/browse(/.*)*", EntitiesBrowserHandler),
-            (r"/comic/([0-9]+)/reader", ReaderHandler),
-            (r"/login", LoginHandler),
+            (self.webroot + r"/", MainHandler),
+            (self.webroot + r"/(.*)\.html", GenericPageHandler),
+            (self.webroot + r"/about", AboutPageHandler),
+            (self.webroot + r"/control", ControlPageHandler),
+            (self.webroot + r"/configure", ConfigPageHandler),
+            (self.webroot + r"/log", LogPageHandler),
+            (self.webroot + r"/comiclist/browse", ComicListBrowserHandler),
+            (self.webroot + r"/folders/browse(/.*)*", FoldersBrowserHandler),
+            (self.webroot + r"/entities/browse(/.*)*", EntitiesBrowserHandler),
+            (self.webroot + r"/comic/([0-9]+)/reader", ReaderHandler),
+            (self.webroot + r"/login", LoginHandler),
             # Data
-            (r"/dbinfo", DBInfoAPIHandler),
-            (r"/version", VersionAPIHandler),
-            (r"/deleted", DeletedAPIHandler),
-            (r"/comic/([0-9]+)", ComicAPIHandler),
-            (r"/comiclist", ComicListAPIHandler),
-            (r"/comic/([0-9]+)/page/([0-9]+|clear)/bookmark", ComicBookmarkAPIHandler ),
-            (r"/comic/([0-9]+)/page/([0-9]+)", ComicPageAPIHandler ),
-            (r"/comic/([0-9]+)/thumbnail", ThumbnailAPIHandler),
-            (r"/comic/([0-9]+)/file", FileAPIHandler),
-            (r"/entities(/.*)*", EntityAPIHandler),
-            (r"/folders(/.*)*", FolderAPIHandler),
-            (r"/command", CommandAPIHandler),
-            (r"/scanstatus", ScanStatusAPIHandler),
+            (self.webroot + r"/dbinfo", DBInfoAPIHandler),
+            (self.webroot + r"/version", VersionAPIHandler),
+            (self.webroot + r"/deleted", DeletedAPIHandler),
+            (self.webroot + r"/comic/([0-9]+)", ComicAPIHandler),
+            (self.webroot + r"/comiclist", ComicListAPIHandler),
+            (self.webroot + r"/comic/([0-9]+)/page/([0-9]+|clear)/bookmark", ComicBookmarkAPIHandler ),
+            (self.webroot + r"/comic/([0-9]+)/page/([0-9]+)", ComicPageAPIHandler ),
+            (self.webroot + r"/comic/([0-9]+)/thumbnail", ThumbnailAPIHandler),
+            (self.webroot + r"/comic/([0-9]+)/file", FileAPIHandler),
+            (self.webroot + r"/entities(/.*)*", EntityAPIHandler),
+            (self.webroot + r"/folders(/.*)*", FolderAPIHandler),
+            (self.webroot + r"/command", CommandAPIHandler),
+            (self.webroot + r"/scanstatus", ScanStatusAPIHandler),
             #(r'/favicon.ico', tornado.web.StaticFileHandler, {'path': os.path.join(AppFolders.appBase(), "static","images")}),
             (r'/.*', UnknownHandler),
             

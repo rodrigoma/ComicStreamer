@@ -18,8 +18,8 @@
             var nokey_args = '{{args}}';
 
             args = nokey_args  + '?&api_key={{api_key}}'
-            var url = '/entities/' + args;
-            var nokey_url = '/entities/' + nokey_args;
+            var url = '{{handler.webroot}}/entities/' + args;
+            var nokey_url = '{{handler.webroot}}/entities/' + nokey_args;
             var items = [];
 
             var wordList = nokey_args.split('/');
@@ -52,7 +52,7 @@
                 if (path_items.length != 0)
                 {
                     parent = nokey_args.split("/").slice(0,-1).join("/");
-                    items.push( "<li><a href=\"/entities/browse" + parent + "\">[back]</a></li>" );
+                    items.push( "<li><a href=\"{{handler.webroot}}/entities/browse" + parent + "\">[back]</a></li>" );
                     str = data.current;
 
                     for (i = 0; i < path_items.length; i+=2)
@@ -97,7 +97,7 @@
             if (lastWord == 'comics')
             {
                 // redirect to the comic browser page
-                window.location = "/comiclist/browse?entity_src="+nokey_url
+                window.location = "{{handler.webroot}}/comiclist/browse?entity_src="+nokey_url
                 //$.getJSON( url, processComicResults);
             }
             else

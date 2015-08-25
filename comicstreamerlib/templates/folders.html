@@ -15,14 +15,15 @@
             @import "{{ static_url('comicstreamer.css') }}";
         </style>
         <script type="text/javascript" language="javascript">
+            var webroot = '{{handler.webroot}}';
             var nokey_args = '{{args}}';
             args = nokey_args  + '?&api_key={{api_key}}'
-            var url = '/folders' + args;
+            var url = '{{handler.webroot}}/folders' + args;
             var items = [];
 
             function list_pusher( key, val )
             {
-                browse_path = val.url_path.replace(/^\/folders/, "/folders/browse");
+                browse_path = val.url_path.replace(new RegExp("^" + webroot + "/folders"), webroot + "/folders/browse");                
                 items.push( "<li><a href=\"" + browse_path + "\">" + val.name+"</a></li>" );
             }
 
@@ -31,7 +32,7 @@
                 if (data.current != "")
                 {
                     parent = nokey_args.split("/").slice(0,-1).join("/");
-                    items.push( "<li><a href=\"/folders/browse" + parent + "\">[up]</a></li>" );
+                    items.push( "<li><a href=\"{{handler.webroot}}/folders/browse" + parent + "\">[up]</a></li>" );
                     str = data.current;
                     $("#current").html(str);
                 }
@@ -56,7 +57,7 @@
                     }
                     else
                     {
-                        browse_path = data.comics.url_path.replace(/^\/comiclist/, "/comiclist/browse");
+                        browse_path = data.comics.url_path.replace(new RegExp("^" + webroot + "/comiclist"), webroot + "/comiclist/browse");
                         str = "<a href=\"" + browse_path + "\">Comics (" + data.comics.count.toString() +")</a>"
                         $("#comics").html(str);
                     }
