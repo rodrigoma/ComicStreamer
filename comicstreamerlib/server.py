@@ -1163,7 +1163,7 @@ class APIServer(tornado.web.Application):
             (self.webroot + r"/command", CommandAPIHandler),
             (self.webroot + r"/scanstatus", ScanStatusAPIHandler),
             #(r'/favicon.ico', tornado.web.StaticFileHandler, {'path': os.path.join(AppFolders.appBase(), "static","images")}),
-            (r'/.*', UnknownHandler),
+            (self.webroot + r'/.*', UnknownHandler),
             
         ]
 
