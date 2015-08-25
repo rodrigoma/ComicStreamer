@@ -73,6 +73,9 @@ def get_recursive_filelist( pathlist ):
 		
 		if os.path.isdir( p ):
 			for root,dirs,files in os.walk( p ):
+				# issue #26: try to exclude hidden files and dirs
+				files = [f for f in files if not f[0] == '.']
+				dirs[:] = [d for d in dirs if not d[0] == '.']
 				for f in files:
 					if type(f) == str:
 						#make sure string is unicode
