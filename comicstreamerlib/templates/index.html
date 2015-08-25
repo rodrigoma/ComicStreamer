@@ -3,7 +3,7 @@
 <html>
     <head>
         <meta charset="utf8">
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/favicon_anoma.ico" />
 
 		{% include head_links.html %}
 
@@ -80,7 +80,7 @@
                         <li>Library created: {{ stats['created'] }}</li>
                         <li>{{ stats['total'] }} comics, including {{ stats['series'] }} series and {{ stats['persons'] }} creators/contributors</li>
                     </ul>
-                    <a href="/comiclist/browse">
+                    <a href="{{handler.webroot}}/comiclist/browse">
                     <h3>
                     <center><strong>View entire library</a> or
                     <a href="#main_search">search</a> or
