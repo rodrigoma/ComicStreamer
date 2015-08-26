@@ -13,3 +13,4 @@ SQLAlchemy==1.0.8
 tornado==4.2.1
 unrar==0.3
 watchdog==0.8.3
+paver==1.2.4
