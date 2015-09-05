@@ -17,7 +17,7 @@
             {% include header.html %}
         </div>                
         <div id=content>
-            <form class="entry_form" action="/login" method="post">
+            <form class="entry_form" action="{{handler.webroot}}/login" method="post">
                 {% module xsrf_form_html() %}
                 <input  type="hidden" name="next" value="{{next}}" />
                 <span>Username</span><div><input type="text" name="username" size="15"/></div>

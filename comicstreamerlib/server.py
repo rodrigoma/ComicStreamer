@@ -1059,7 +1059,7 @@ class LoginHandler(BaseHandler):
         if  len(self.get_arguments("next")) != 0:
             next=self.get_argument("next")
         else:
-            next="/"
+            next=self.webroot + "/"
             
         #if password and user are blank, just skip to the "next"
         if (  self.application.config['security']['password_digest'] == utils.getDigest("")  and
@@ -1176,7 +1176,7 @@ class APIServer(tornado.web.Application):
             static_url_prefix=self.webroot + "/static/",
             debug=True,
             #autoreload=False,
-            login_url="/login",
+            login_url=self.webroot + "/login",
             cookie_secret=self.config['security']['cookie_secret'],
             xsrf_cookies=True,
         )
