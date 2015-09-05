@@ -37,7 +37,10 @@ import json
 import pprint
 import mimetypes
 from PIL import Image
-from PIL import WebPImagePlugin
+try:
+    from PIL import WebPImagePlugin
+except:
+    pass
 import StringIO
 import gzip
 import dateutil.parser
@@ -1170,6 +1173,7 @@ class APIServer(tornado.web.Application):
         settings = dict(
             template_path=os.path.join(AppFolders.appBase(), "templates"),
             static_path=os.path.join(AppFolders.appBase(), "static"),
+            static_url_prefix=self.webroot + "/static/",
             debug=True,
             #autoreload=False,
             login_url="/login",

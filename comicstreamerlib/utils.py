@@ -29,7 +29,11 @@ import calendar
 import hashlib
 import time
 from PIL import Image
-from PIL import WebPImagePlugin
+try:
+    from PIL import WebPImagePlugin
+except:
+    pass
+
 import StringIO
 from comicstreamerlib.folders import AppFolders
 import imghdr
