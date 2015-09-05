@@ -1,3 +1,10 @@
+#### Work on this fork (september 5 2015)
+ - added webroot option to configuration, useful for proxy pass configurations (issue #24)
+ - little unrar automation: after pip installation, run `paver libunrar'
+   to automatically fetch compile and install the unrar library.
+ - now the scanning component ignores hidden (dot) files (issue #26)
+ - added new logo from blindpet (issue #27)
+ - upgraded to latest releases of various dependent packages
 #### Work on this fork (april 5 2015)
 
  - refactoring database access in a Library object (see library branch)
