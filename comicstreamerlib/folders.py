@@ -47,13 +47,21 @@ class AppFolders():
 
     @staticmethod
     def userFolder():
+        
+        opts = Options()
+        opts.parseCmdLineArgs()
+        
         filename_encoding = sys.getfilesystemencoding()
-        if platform.system() == "Windows":
+
+        if opts.user_dir is not None:
+            folder = opts.user_dir
+        elif platform.system() == "Windows":
             folder = os.path.join( AppFolders.windowsAppDataFolder(), 'ComicStreamer' )
         elif platform.system() == "Darwin":
             folder = os.path.join( os.path.expanduser('~') , 'Library/Application Support/ComicStreamer')
         else:
             folder = os.path.join( os.path.expanduser('~') , '.ComicStreamer')
+            
         if folder is not None:
             folder = folder.decode(filename_encoding)
         return folder
