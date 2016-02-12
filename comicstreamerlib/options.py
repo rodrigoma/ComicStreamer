@@ -49,6 +49,7 @@ for comics to add to the database (persisted)
       --nobrowser            Don't launch a web browser                                            
       --version              Display version                            
   -h, --help                 Display this message
+      --user-dir             Set path for user folder
   
     """
 
@@ -63,6 +64,7 @@ for comics to add to the database (persisted)
         self.launch_browser = True
         self.reset_and_run = False
         self.webroot = None
+        self.user_dir = None;
         
     def display_msg_and_quit( self, msg, code, show_help=False ):
         appname = os.path.basename(sys.argv[0])
@@ -87,7 +89,7 @@ for comics to add to the database (persisted)
             opts, args = getopt.getopt( input_args, 
                        "dp:hrq", 
                        [ "help", "port=", "webroot=", "version", "reset", "debug", "quiet",
-                    "nomonitor", "nobrowser",
+                    "nomonitor", "nobrowser", "user-dir=",
                     "_resetdb_and_run", #private
                     ] )
 
@@ -121,6 +123,8 @@ for comics to add to the database (persisted)
                 sys.exit(0)
             if o == "--_resetdb_and_run":
                 self.reset_and_run = True
+            if o == "--user-dir":
+                self.user_dir = a
                 
                 
         filename_encoding = sys.getfilesystemencoding()
