@@ -529,6 +529,7 @@ class ThumbnailAPIHandler(ImageAPIHandler):
             self.write(image_data)
 
 class FileAPIHandler(GenericAPIHandler):
+    @tornado.web.asynchronous
     def get(self, comic_id):
         self.validateAPIKey()
 
@@ -545,10 +546,11 @@ class FileAPIHandler(GenericAPIHandler):
             # TODO: check it doesn't buffer the response, it should send data chunk by chunk
             with open(obj.path, 'rb') as f:
                 while True:
-                    data = f.read(2048 * 1024)
+                    data = f.read(40960 * 1024)
                     if not data:
                         break
                     self.write(data)
+                    self.flush()
             self.finish()
 
 class FolderAPIHandler(JSONResultAPIHandler):
