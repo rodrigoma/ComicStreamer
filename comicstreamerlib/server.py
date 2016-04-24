@@ -529,7 +529,6 @@ class ThumbnailAPIHandler(ImageAPIHandler):
             self.write(image_data)
 
 class FileAPIHandler(GenericAPIHandler):
-    @tornado.web.asynchronous
     def get(self, comic_id):
         self.validateAPIKey()
 
