@@ -27,7 +27,7 @@ limitations under the License.
 
 import re
 import os
-from urllib import unquote
+from urllib.parse import unquote
 
 class FileNameParser:
 

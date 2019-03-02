@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 ComicStreamer main server classes
@@ -24,14 +24,13 @@ from datetime import date
 import tornado.escape
 import tornado.ioloop
 import tornado.web
-import urllib
 import mimetypes
-from urllib2 import quote
+import urllib.parse
 
 
 from sqlalchemy import desc
 from sqlalchemy.orm import joinedload,subqueryload,aliased
-from  sqlalchemy.sql.expression import func, select
+from sqlalchemy.sql.expression import func, select
 
 import json
 import pprint
@@ -41,7 +40,8 @@ try:
     from PIL import WebPImagePlugin
 except:
     pass
-import StringIO
+from io import StringIO
+from io import BytesIO
 import gzip
 import dateutil.parser
 import logging
@@ -56,17 +56,19 @@ import time
 
 from comicapi.comicarchive import *
 
-import csversion
-import utils
-from database import *
-from monitor import Monitor
-from config import ComicStreamerConfig
+import comicstreamerlib.csversion
+import comicstreamerlib.utils
+from comicstreamerlib.database import *
+from comicstreamerlib.monitor import Monitor
+from comicstreamerlib.config import ComicStreamerConfig
 from comicstreamerlib.folders import AppFolders
-from options import Options
-from bonjour import BonjourThread
-from bookmarker import Bookmarker
+from comicstreamerlib.options import Options
+from comicstreamerlib.bonjour import BonjourThread
+from comicstreamerlib.bookmarker import Bookmarker
 
-from library import Library
+from comicstreamerlib.library import Library
+
+Image.MAX_IMAGE_PIXELS = None #Removed image size limit for testing
 
 # add webp test to imghdr in case it isn't there already
 def my_test_webp(h, f):
@@ -77,7 +79,7 @@ imghdr.tests.append(my_test_webp)
 
 # to allow a blank username
 def fix_username(username):
-    return  username + "XX"
+    return  username + b"XX"
 
 def custom_get_current_user(handler):
     user = handler.get_secure_cookie("user")
@@ -167,7 +169,7 @@ class JSONResultAPIHandler(GenericAPIHandler):
 
         if folder_filter != "":
             folder_filter = os.path.normcase(os.path.normpath(folder_filter))
-            print folder_filter
+            print (folder_filter)
         
         person = None
         role = None
@@ -182,10 +184,10 @@ class JSONResultAPIHandler(GenericAPIHandler):
             query = query.join(Credit).filter(Person.name.ilike(person.replace("*","%"))).filter(Credit.person_id==Person.id)
             if role is not None:
                 query = query.filter(Credit.role_id==Role.id).filter(Role.name.ilike(role.replace("*","%")))
-            #query = query.filter( Comic.persons.contains(unicode(person).replace("*","%") ))
+            #query = query.filter( Comic.persons.contains(str(person).replace("*","%") ))
         
         if hasValue(keyphrase_filter):
-            keyphrase_filter = unicode(keyphrase_filter).replace("*","%")
+            keyphrase_filter = str(keyphrase_filter).replace("*","%")
             keyphrase_filter = "%" + keyphrase_filter + "%"
             query = query.filter( Comic.series.ilike(keyphrase_filter) 
                                 | Comic.title.ilike(keyphrase_filter)
@@ -201,13 +203,13 @@ class JSONResultAPIHandler(GenericAPIHandler):
 
         def addQueryOnScalar(query, obj_prop, filt):
             if hasValue(filt):
-                filt = unicode(filt).replace("*","%")
+                filt = str(filt).replace("*","%")
                 return query.filter( obj_prop.ilike(filt))
             else:
                 return query
         def addQueryOnList(query, obj_list, list_prop, filt):
             if hasValue(filt):
-                filt = unicode(filt).replace("*","%")
+                filt = str(filt).replace("*","%")
                 return query.filter( obj_list.any(list_prop.ilike(filt)))
             else:
                 return query
@@ -224,25 +226,25 @@ class JSONResultAPIHandler(GenericAPIHandler):
         query = addQueryOnList(query, Comic.storyarcs_raw, StoryArc.name, storyarc)
         query = addQueryOnList(query, Comic.genres_raw, Genre.name, genre)
         #if hasValue(series_filter):
-        #    query = query.filter( Comic.series.ilike(unicode(series_filter).replace("*","%") ))
+        #    query = query.filter( Comic.series.ilike(str(series_filter).replace("*","%") ))
         #if hasValue(title_filter):
-        #    query = query.filter( Comic.title.ilike(unicode(title_filter).replace("*","%") ))
+        #    query = query.filter( Comic.title.ilike(str(title_filter).replace("*","%") ))
         #if hasValue(filename_filter):
-        #    query = query.filter( Comic.path.ilike(unicode(filename_filter).replace("*","%") ))
+        #    query = query.filter( Comic.path.ilike(str(filename_filter).replace("*","%") ))
         #if hasValue(publisher):
-        #    query = query.filter( Comic.publisher.ilike(unicode(publisher).replace("*","%") ))
+        #    query = query.filter( Comic.publisher.ilike(str(publisher).replace("*","%") ))
         #if hasValue(character):
-        #    query = query.filter( Comic.characters_raw.any(Character.name.ilike(unicode(character).replace("*","%") )))
+        #    query = query.filter( Comic.characters_raw.any(Character.name.ilike(str(character).replace("*","%") )))
         #if hasValue(tag):
-        #    query = query.filter( Comic.generictags.contains(unicode(tag).replace("*","%") ))
+        #    query = query.filter( Comic.generictags.contains(str(tag).replace("*","%") ))
         #if hasValue(team):
-        #    query = query.filter( Comic.teams.contains(unicode(team).replace("*","%") ))
+        #    query = query.filter( Comic.teams.contains(str(team).replace("*","%") ))
         #if hasValue(location):
-        #    query = query.filter( Comic.locations.contains(unicode(location).replace("*","%") ))
+        #    query = query.filter( Comic.locations.contains(str(location).replace("*","%") ))
         #if hasValue(storyarc):
-        #    query = query.filter( Comic.storyarcs.contains(unicode(storyarc).replace("*","%") ))
+        #    query = query.filter( Comic.storyarcs.contains(str(storyarc).replace("*","%") ))
         #if hasValue(genre):
-        #    query = query.filter( Comic.genres.contains(unicode(genre).replace("*","%") ))
+        #    query = query.filter( Comic.genres.contains(str(genre).replace("*","%") ))
         if hasValue(volume):
             try:
                 vol = 0
@@ -268,7 +270,7 @@ class JSONResultAPIHandler(GenericAPIHandler):
         if hasValue(modified_since):
             try:
                 dt=dateutil.parser.parse(modified_since)
-                resultset = resultset.filter( Comic.mod_ts >= dt )
+                resultset = query.filter( Comic.mod_ts >= dt )
             except:
                 pass
 
@@ -336,7 +338,7 @@ class ZippableAPIHandler(JSONResultAPIHandler):
         if self.get_argument(u"gzip", default=None) is not None:
             self.add_header("Content-Encoding","gzip")
             # TODO: make sure browser can handle gzip?
-            zbuf = StringIO.StringIO()
+            zbuf = StringIO()
             zfile = gzip.GzipFile(mode = 'wb',  fileobj = zbuf, compresslevel = 9)
             zfile.write(json.dumps(json_data))
             zfile.close()
@@ -361,10 +363,11 @@ class CommandAPIHandler(GenericAPIHandler):
 
 class ImageAPIHandler(GenericAPIHandler):
     def setContentType(self, image_data):
-        
-        imtype = imghdr.what(StringIO.StringIO(image_data))
-        self.add_header("Content-type","image/{0}".format(imtype))
-
+        if type(image_data) is bytes:
+            imtype = imghdr.what(BytesIO(image_data))
+            self.add_header("Content-type","image/{0}".format(imtype))
+        else:
+            self.add_header("Content-type","image/{0}".format(image_data))
             
 class VersionAPIHandler(JSONResultAPIHandler):
     def get(self):
@@ -459,7 +462,7 @@ class FoldersBrowserHandler(BaseHandler):
     def get(self,args):
         if args is None:
             args = "/"
-        args = utils.collapseRepeats(args, "/")    
+        args = comicstreamerlib.utils.collapseRepeats(args, "/")    
             
         self.render("folders.html",
                     args=args,
@@ -556,9 +559,9 @@ class FolderAPIHandler(JSONResultAPIHandler):
     def get(self, args):            
         self.validateAPIKey()
         if args is not None:
-            args = urllib.unquote(args)
+            args = urllib.parse.unquote(args)
             arglist = args.split('/')
-            arglist = filter(None, arglist)
+            arglist = list(filter(None, arglist))
             argcount = len(arglist)
         else:
             arglist = list()
@@ -594,7 +597,7 @@ class FolderAPIHandler(JSONResultAPIHandler):
                 path = os.path.join(folder_list[folder_idx], *arglist[1:] )
                 # validate *that* folder
                 if not os.path.exists(path):
-                    print "Not exist", path, type(path)            
+                    print ("Not exist", path, type(path))        
                     raise Exception
                 
 
@@ -603,7 +606,7 @@ class FolderAPIHandler(JSONResultAPIHandler):
                 for o in os.listdir(path):
                     if os.path.isdir(os.path.join(path,o)):
                         sub_path = u"/folders" + args + u"/" + o
-                        sub_path = urllib.quote(sub_path.encode("utf-8"))
+                        sub_path = urllib.parse.quote(sub_path.encode("utf-8"))
                         item = {
                             'name': o,
                             'url_path' : sub_path
@@ -612,11 +615,11 @@ class FolderAPIHandler(JSONResultAPIHandler):
                 # see if there are any comics here
                 (ignore, total_results) = self.library.list({'folder': path}, {'per_page': 0, 'offset': 0})
                 response['comics']['count'] = total_results
-                comic_path = self.webroot + u"/comiclist?folder=" + urllib.quote(u"{0}".format(path).encode('utf-8'))
+                comic_path = self.webroot + u"/comiclist?folder=" + urllib.parse.quote(u"{0}".format(path).encode('utf-8'))
                 response['comics']['url_path'] = comic_path
 
             except FloatingPointError as e:
-                print e
+                print (e)
                 raise tornado.web.HTTPError(404, "Unknown folder")
  
         self.setContentType()
@@ -631,7 +634,7 @@ class EntityAPIHandler(JSONResultAPIHandler):
             args = ""
         arglist=args.split('/')
             
-        arglist = filter(None, arglist)
+        arglist = list(filter(None, arglist))
         argcount = len(arglist)
         
         entities = {
@@ -830,8 +833,8 @@ class MainHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self):
         stats = self.library.getStats()
-        stats['last_updated'] = utils.utc_to_local(stats['last_updated']).strftime("%Y-%m-%d %H:%M:%S")
-        stats['created'] = utils.utc_to_local(stats['created']).strftime("%Y-%m-%d %H:%M:%S")
+        stats['last_updated'] = comicstreamerlib.utils.utc_to_local(stats['last_updated']).strftime("%Y-%m-%d %H:%M:%S")
+        stats['created'] = comicstreamerlib.utils.utc_to_local(stats['created']).strftime("%Y-%m-%d %H:%M:%S")
 
         recently_added_comics = self.library.recentlyAddedComics(10)
         recently_read_comics = self.library.recentlyReadComics(10)
@@ -893,7 +896,7 @@ class ConfigPageHandler(BaseHandler):
             s.shutdown(2)
             return False
         except Exception as e:
-            print e
+            print (e)
             return True
 
     def render_config(self, formdata, success="", failure=""):
@@ -952,7 +955,7 @@ class ConfigPageHandler(BaseHandler):
         validated = False
         
         old_folder_list = self.application.config['general']['folder_list']
-        new_folder_list = [os.path.normcase(os.path.abspath(os.path.normpath(unicode(a)))) for a in formdata['folders'].splitlines()]
+        new_folder_list = [os.path.normcase(os.path.abspath(os.path.normpath(str(a)))) for a in formdata['folders'].splitlines()]
 
         try:
             for i, f in enumerate(new_folder_list):
@@ -1015,7 +1018,7 @@ class ConfigPageHandler(BaseHandler):
             if formdata['use_authentication']:
                 if formdata['password'] == ConfigPageHandler.fakepass:
                     password_changed = False 
-                elif utils.getDigest(formdata['password']) == self.application.config['security']['password_digest']:
+                elif comicstreamerlib.utils.getDigest(formdata['password']) == self.application.config['security']['password_digest']:
                     password_changed = False
             else:
                 password_changed = False
@@ -1037,7 +1040,7 @@ class ConfigPageHandler(BaseHandler):
                 self.application.config['security']['use_authentication'] = formdata['use_authentication']
                 self.application.config['security']['username'] = formdata['username']
                 if formdata['password'] != ConfigPageHandler.fakepass:
-                    self.application.config['security']['password_digest'] = utils.getDigest(formdata['password'])
+                    self.application.config['security']['password_digest'] = comicstreamerlib.utils.getDigest(formdata['password'])
                 self.application.config['security']['use_api_key'] = formdata['use_api_key']
                 if self.application.config['security']['use_api_key']:
                     self.application.config['security']['api_key'] = formdata['api_key']
@@ -1063,7 +1066,7 @@ class LoginHandler(BaseHandler):
             next=self.webroot + "/"
             
         #if password and user are blank, just skip to the "next"
-        if (  self.application.config['security']['password_digest'] == utils.getDigest("")  and
+        if (  self.application.config['security']['password_digest'] == comicstreamerlib.utils.getDigest("")  and
               self.application.config['security']['username'] == ""
             ):
             self.set_secure_cookie("user", fix_username(self.application.config['security']['username']))
@@ -1077,7 +1080,7 @@ class LoginHandler(BaseHandler):
         if  len(self.get_arguments("password")) != 0:
                 
             #print self.application.password, self.get_argument("password") , next
-            if (utils.getDigest(self.get_argument("password"))  ==  self.application.config['security']['password_digest'] and
+            if (comicstreamerlib.utils.getDigest(self.get_argument("password"))  ==  self.application.config['security']['password_digest'] and
                 self.get_argument("username")  ==  self.application.config['security']['username']):
                 #self.set_secure_cookie("auth", self.application.config['security']['password_digest'])
                 self.set_secure_cookie("user", fix_username(self.application.config['security']['username']))
@@ -1086,7 +1089,7 @@ class LoginHandler(BaseHandler):
             
 class APIServer(tornado.web.Application):
     def __init__(self, config, opts):
-        utils.fix_output_encoding()   
+        comicstreamerlib.utils.fix_output_encoding()   
         
         self.config = config
         self.opts = opts
@@ -1116,7 +1119,7 @@ class APIServer(tornado.web.Application):
         except SchemaVersionException as e:
             msg = "Couldn't open database.  Probably the schema has changed."
             logging.error(msg)
-            utils.alert("Schema change", msg)
+            comicstreamerlib.utils.alert("Schema change", msg)
             sys.exit(-1)
             
         
@@ -1126,7 +1129,7 @@ class APIServer(tornado.web.Application):
             logging.error(e)
             msg = "Couldn't open socket on port {0}.  (Maybe ComicStreamer is already running?)  Quitting.".format(self.port)
             logging.error(msg)
-            utils.alert("Port not available", msg)
+            comicstreamerlib.utils.alert("Port not available", msg)
             sys.exit(-1)
 
         logging.info( "Stream server running on port {0}...".format(self.port))
@@ -1137,7 +1140,7 @@ class APIServer(tornado.web.Application):
         #})
         #http_server.listen(port+1)        
          
-        self.version = csversion.version
+        self.version = comicstreamerlib.csversion.version
 
         handlers = [
             # Web Pages
@@ -1197,8 +1200,8 @@ class APIServer(tornado.web.Application):
         self.bookmarker.start()
 
         if opts.launch_browser and self.config['general']['launch_browser']:
-            if ((platform.system() == "Linux" and os.environ.has_key('DISPLAY')) or
-                    (platform.system() == "Darwin" and not os.environ.has_key('SSH_TTY')) or
+            if ((platform.system() == "Linux" and ('DISPLAY' in os.environ)) or
+                    (platform.system() == "Darwin" and not ('SSH_TTY' in os.environ)) or
                     platform.system() == "Windows"):
                 webbrowser.open("http://localhost:{0}".format(self.port), new=0)
 

@@ -40,7 +40,6 @@ class OpenableRarFile(rarfile.RarFile):
     def open(self, member):
         #print "opening %s..." % member
         # based on https://github.com/matiasb/python-unrar/pull/4/files
-        res = []
         if isinstance(member, rarfile.RarInfo):
             member = member.filename
         archive = unrarlib.RAROpenArchiveDataEx(self.filename, mode=constants.RAR_OM_EXTRACT)
@@ -76,9 +75,10 @@ if platform.system() == "Windows":
     import _subprocess
 import time
 
-import StringIO
+from io import StringIO
+from io import BytesIO
 try: 
-    import Image
+    from PIL import Image
     pil_available = True
 except ImportError:
     pil_available = False
@@ -88,11 +88,11 @@ sys.path.insert(0, os.path.abspath(".") )
 #from UnRAR2.rar_exceptions import *
 
 #from settings import ComicTaggerSettings
-from comicinfoxml import ComicInfoXml
-from comicbookinfo import ComicBookInfo
-from comet import CoMet
-from genericmetadata import GenericMetadata, PageType
-from filenameparser import FileNameParser
+from comicapi.comicinfoxml import ComicInfoXml
+from comicapi.comicbookinfo import ComicBookInfo
+from comicapi.comet import CoMet
+from comicapi.genericmetadata import GenericMetadata, PageType
+from comicapi.filenameparser import FileNameParser
 from PyPDF2 import PdfFileReader
 
 class MetaDataStyle:
@@ -803,13 +803,13 @@ class ComicArchive:
         for name in name_list:
             fname =  os.path.split(name)[1]
             length = len(fname)
-            if length_buckets.has_key( length ):
+            if length in length_buckets:
                 length_buckets[ length ] += 1
             else:
                 length_buckets[ length ] = 1
 
         # sort by most common
-        sorted_buckets = sorted(length_buckets.iteritems(), key=lambda (k,v): (v,k), reverse=True)
+        sorted_buckets = sorted(length_buckets.items(), key=lambda k,v: (v,k), reverse=True)
 
         # statistical mode occurence is first
         mode_length = sorted_buckets[0][0]
@@ -946,7 +946,7 @@ class ComicArchive:
         try:
             raw_cix = self.archiver.readArchiveFile( self.ci_xml_filename )
         except IOError:
-            print "Error reading in raw CIX!"
+            print ("Error reading in raw CIX!")
             raw_cix = ""
         return  raw_cix
 
@@ -1092,7 +1092,7 @@ class ComicArchive:
                         data = self.getPage( idx )
                         if data is not None:
                             try:
-                                im = Image.open(StringIO.StringIO(data))
+                                im = Image.open(StringIO(data))
                                 w,h = im.size
 
                                 p['ImageSize'] = str(len(data))

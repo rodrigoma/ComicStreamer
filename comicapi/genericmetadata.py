@@ -23,7 +23,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import utils
+import comicapi.utils
 
 # These page info classes are exactly the same as the CIX scheme, since it's unique
 class PageType:
@@ -293,7 +293,7 @@ class GenericMetadata:
 		add_attr_string( "comments" )
 		add_attr_string( "notes" )
 		
-		add_string( "tags",  utils.listToString( self.tags ) )
+		add_string( "tags", comicapi.utils.listToString( self.tags ) )
 		 
 		for c in self.credits:
 			primary = ""

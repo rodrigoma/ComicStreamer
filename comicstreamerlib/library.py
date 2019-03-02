@@ -6,10 +6,10 @@ import os
 from sqlalchemy import func, distinct
 from sqlalchemy.orm import subqueryload
 
-import utils
-from database import Comic, DatabaseInfo, Person, Role, Credit, Character, GenericTag, Team, Location, \
+import comicstreamerlib.utils
+from comicstreamerlib.database import Comic, DatabaseInfo, Person, Role, Credit, Character, GenericTag, Team, Location, \
     StoryArc, Genre, DeletedComic
-from folders import AppFolders
+from comicstreamerlib.folders import AppFolders
 from comicapi.comicarchive import ComicArchive
 from comicapi.issuestring import IssueString
 
@@ -53,7 +53,7 @@ class Library:
         # resize image
         if max_height is not None:
             try:
-                image_data = utils.resizeImage(int(max_height), image_data)
+                image_data = comicstreamerlib.utils.resizeImage(int(max_height), image_data)
             except Exception as e:
                 #logging.error(e)
                 pass
@@ -126,10 +126,10 @@ class Library:
 
         if not md.isEmpty:
             if md.series is not None:
-                comic.series = unicode(md.series)
+                comic.series = str(md.series)
             if md.issue is not None:
-                comic.issue = unicode(md.issue)
-                comic.issue_num = IssueString(unicode(comic.issue)).asFloat()
+                comic.issue = str(md.issue)
+                comic.issue_num = IssueString(str(comic.issue)).asFloat()
 
             if md.year is not None:
                 try:
@@ -151,15 +151,15 @@ class Library:
             if md.volume is not None:
                 comic.volume = int(md.volume)
             if md.publisher is not None:
-                comic.publisher = unicode(md.publisher)
+                comic.publisher = str(md.publisher)
             if md.title is not None:
-                comic.title = unicode(md.title)
+                comic.title = str(md.title)
             if md.comments is not None:
-                comic.comments = unicode(md.comments)
+                comic.comments = str(md.comments)
             if md.imprint is not None:
-                comic.imprint = unicode(md.imprint)
+                comic.imprint = str(md.imprint)
             if md.webLink is not None:
-                comic.weblink = unicode(md.webLink)
+                comic.weblink = str(md.webLink)
 
         if md.characters is not None:
             for c in list(set(md.characters.split(","))):
@@ -320,10 +320,10 @@ class Library:
             if role is not None:
                 query = query.filter(Credit.role_id == Role.id) \
                              .filter(Role.name.ilike(role.replace("*", "%")))
-            #query = query.filter( Comic.persons.contains(unicode(person).replace("*","%") ))
+            #query = query.filter( Comic.persons.contains(str(person).replace("*","%") ))
 
         if hasValue(keyphrase_filter):
-            keyphrase_filter = unicode(keyphrase_filter).replace("*", "%")
+            keyphrase_filter = str(keyphrase_filter).replace("*", "%")
             keyphrase_filter = "%" + keyphrase_filter + "%"
             query = query.filter( Comic.series.ilike(keyphrase_filter)
                                 | Comic.title.ilike(keyphrase_filter)
@@ -339,14 +339,14 @@ class Library:
 
         def addQueryOnScalar(query, obj_prop, filt):
             if hasValue(filt):
-                filt = unicode(filt).replace("*","%")
+                filt = str(filt).replace("*","%")
                 return query.filter( obj_prop.ilike(filt))
             else:
                 return query
 
         def addQueryOnList(query, obj_list, list_prop, filt):
             if hasValue(filt):
-                filt = unicode(filt).replace("*","%")
+                filt = str(filt).replace("*","%")
                 return query.filter( obj_list.any(list_prop.ilike(filt)))
             else:
                 return query

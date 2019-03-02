@@ -22,8 +22,8 @@ from datetime import datetime
 import zipfile
 from pprint import pprint 
 import xml.etree.ElementTree as ET
-from genericmetadata import GenericMetadata
-import utils
+from comicapi.genericmetadata import GenericMetadata
+import comicapi.utils
 
 class CoMet:
 	
@@ -213,7 +213,7 @@ class CoMet:
 		for n in root:
 			if n.tag == 'character':
 				char_list.append(n.text.strip())
-		md.characters = utils.listToString( char_list )
+		md.characters = comicapi.utils.listToString( char_list )
 
 		# Now extract the credit info
 		for n in root:

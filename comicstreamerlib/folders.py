@@ -24,7 +24,7 @@ import platform
 import logging
 
 
-from options import Options
+from comicstreamerlib.options import Options
 
 class AppFolders():
     
@@ -61,9 +61,7 @@ class AppFolders():
             folder = os.path.join( os.path.expanduser('~') , 'Library/Application Support/ComicStreamer')
         else:
             folder = os.path.join( os.path.expanduser('~') , '.ComicStreamer')
-            
-        if folder is not None:
-            folder = folder.decode(filename_encoding)
+
         return folder
         
     @staticmethod
@@ -73,9 +71,9 @@ class AppFolders():
             if platform.system() == "Darwin":
                 return sys._MEIPASS
             else: # Windows
-                return os.path.dirname( os.path.abspath( unicode(sys.executable, encoding) ) )
+                return os.path.dirname( os.path.abspath( str(sys.executable) ) )
         else:
-            return os.path.dirname( os.path.abspath(unicode(__file__, encoding)) )
+            return os.path.dirname( os.path.abspath(str(__file__)) )
 
     @staticmethod
     def logs():

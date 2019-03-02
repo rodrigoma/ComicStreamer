@@ -24,7 +24,7 @@ import platform
 import os
 import traceback
 
-import csversion
+import comicstreamerlib.csversion
 
 try:
     import argparse
@@ -64,16 +64,16 @@ for comics to add to the database (persisted)
         self.launch_browser = True
         self.reset_and_run = False
         self.webroot = None
-        self.user_dir = None;
+        self.user_dir = None
         
     def display_msg_and_quit( self, msg, code, show_help=False ):
         appname = os.path.basename(sys.argv[0])
         if msg is not None:
             print( msg )
         if show_help:
-            print self.help_text.format(appname)
+            print (self.help_text.format(appname))
         else:
-            print "For more help, run with '--help'"
+            print ("For more help, run with '--help'")
         sys.exit(code)  
 
     def parseCmdLineArgs(self):
@@ -118,8 +118,8 @@ for comics to add to the database (persisted)
             if o  == "--nobrowser":
                 self.launch_browser = False                
             if o  == "--version":
-                print "ComicStreamer {0}:  Copyright (c) 2014 Anthony Beville".format(csversion.version)
-                print "Distributed under Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)"
+                print ("ComicStreamer {0}:  Copyright (c) 2014 Anthony Beville".format(comicstreamerlib.csversion.version))
+                print ("Distributed under Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)")
                 sys.exit(0)
             if o == "--_resetdb_and_run":
                 self.reset_and_run = True
@@ -130,7 +130,7 @@ for comics to add to the database (persisted)
         filename_encoding = sys.getfilesystemencoding()
         if len(args) > 0:
             #self.folder_list = [os.path.normpath(a.decode(filename_encoding)) for a in args]
-            self.folder_list = [os.path.abspath(os.path.normpath(unicode(a.decode(filename_encoding)))) for a in args]
+            self.folder_list = [os.path.abspath(os.path.normpath(str(a.decode(filename_encoding)))) for a in args]
         
         # remove certain private flags from args
         try:

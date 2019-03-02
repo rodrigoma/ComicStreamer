@@ -34,7 +34,8 @@ try:
 except:
     pass
 
-import StringIO
+from io import StringIO
+from io import BytesIO
 from comicstreamerlib.folders import AppFolders
 import imghdr
 
@@ -42,6 +43,8 @@ from datetime import datetime, timedelta
 	
 class UtilsVars:
 	already_fixed_encoding = False
+
+Image.MAX_IMAGE_PIXELS = None #Removed image size limit for testing
 
 def get_actual_preferred_encoding():
 	preferred_encoding = locale.getpreferredencoding()
@@ -68,25 +71,18 @@ def get_recursive_filelist( pathlist ):
 	filelist = []
 	for p in pathlist:
 		# if path is a folder, walk it recursivly, and all files underneath
-		if type(p) == str:
-			#make sure string is unicode
-			p = p.decode(filename_encoding) #, 'replace')
-		elif type(p) != unicode:
-			#it's probably a QString
-			p = unicode(p)
-		
 		if os.path.isdir( p ):
 			for root,dirs,files in os.walk( p ):
 				# issue #26: try to exclude hidden files and dirs
 				files = [f for f in files if not f[0] == '.']
 				dirs[:] = [d for d in dirs if not d[0] == '.']
 				for f in files:
-					if type(f) == str:
-						#make sure string is unicode
-						f = f.decode(filename_encoding, 'replace')
-					elif type(f) != unicode:
-						#it's probably a QString
-						f = unicode(f)
+					#if type(f) == str:
+					#	#make sure string is unicode
+					#	f = f.decode(filename_encoding, 'replace')
+					#elif type(f) != str:
+					#	#it's probably a QString
+					#	f = str(f)
 					filelist.append(os.path.join(root,f))
 		else:
 			filelist.append(p)
@@ -98,9 +94,10 @@ def touch(fname, times=None):
         os.utime(fname, times)
 
 def getDigest(password):
-    digest = hashlib.sha256(password).hexdigest()
+
+    digest = hashlib.sha256(password.encode('utf-8')).hexdigest()
     for x in range(0, 1002):
-        digest = hashlib.sha256(digest).hexdigest()
+        digest = hashlib.sha256(digest.encode('utf-8')).hexdigest()
     time.sleep(.5)
     return digest
 
@@ -129,16 +126,16 @@ def collapseRepeats(string, ch):
 
 def resizeImage(max, image_data):
     # disable WebP for now, due a memory leak in python library
-    imtype = imghdr.what(StringIO.StringIO(image_data))
+    imtype = imghdr.what(StringIO(image_data))
     if imtype == "webp":
         with open(AppFolders.imagePath("default.jpg"), 'rb') as fd:
             image_data = fd.read()
 
-    im = Image.open(StringIO.StringIO(image_data)).convert('RGB')
+    im = Image.open(StringIO(image_data)).convert('RGB')
     w,h = im.size
     if max < h:
         im.thumbnail((w,max), Image.ANTIALIAS)
-        output = StringIO.StringIO()
+        output = StringIO()
         im.save(output, format="JPEG")
         return output.getvalue()
     else:
@@ -148,7 +145,7 @@ def resizeImage(max, image_data):
 # simple comparison with resizeImage:
 # >>> start = time.time(); foo = [utils.resizeImage(200, f) for i in range(1,100)]; print time.time() - start;
 # 10.9432790279
-# >>> start = time.time(); foo = [utils.resize(f, (200,200), StringIO.StringIO()) for i in range(1,100)]; print time.time() - start;
+# >>> start = time.time(); foo = [utils.resize(f, (200,200), StringIO()) for i in range(1,100)]; print time.time() - start;
 # 2.90805196762
 #
 # taken from http://united-coders.com/christian-harms/image-resizing-tips-every-coder-should-know/
@@ -160,8 +157,8 @@ def resize(img, box, out, fit=False):
     @param out: file-like-object - save the image into the output stream
     '''
 
-    if type(img) != Image and type(img) == str:
-        img = Image.open(StringIO.StringIO(img))
+    if type(img) != Image and type(img) == bytes:
+        img = Image.open(BytesIO(img))
 
     #preresize image with factor 2, 4, 8 and fast algorithm
     factor = 1

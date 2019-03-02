@@ -59,9 +59,9 @@ def get_recursive_filelist( pathlist ):
 		if type(p) == str:
 			#make sure string is unicode
 			p = p.decode(filename_encoding) #, 'replace')
-		elif type(p) != unicode:
+		elif type(p) != str:
 			#it's probably a QString
-			p = unicode(p)
+			p = str(p)
 		
 		if os.path.isdir( p ):
 			for root,dirs,files in os.walk( p ):
@@ -69,9 +69,9 @@ def get_recursive_filelist( pathlist ):
 					if type(f) == str:
 						#make sure string is unicode
 						f = f.decode(filename_encoding, 'replace')
-					elif type(f) != unicode:
+					elif type(f) != str:
 						#it's probably a QString
-						f = unicode(f)
+						f = str(f)
 					filelist.append(os.path.join(root,f))
 		else:
 			filelist.append(p)

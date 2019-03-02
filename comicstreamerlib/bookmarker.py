@@ -25,16 +25,16 @@ import select
 import sys
 import logging
 import platform
-import Queue
+import queue
 import datetime
 
-from database import Comic
+from comicstreamerlib.database import Comic
 
 class Bookmarker(threading.Thread):
     def __init__(self, dm):
         super(Bookmarker, self).__init__()
 
-        self.queue = Queue.Queue(0)
+        self.queue = queue.Queue(0)
         self.quit = False
         self.dm = dm
         
@@ -46,7 +46,7 @@ class Bookmarker(threading.Thread):
         # for now, don't defer the bookmark setting, maybe it's not needed
         self.actualSetBookmark( comic_id, pagenum)
         #self.queue.put((comic_id, pagenum))
-        
+
     def run(self):
         logging.debug("Bookmarker: started main loop.")
         pagenum = 0

@@ -1,13 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys
 import os
 import hashlib
-import md5
 import mmap
 import datetime
 import time
 import threading
-import Queue
+import queue
 import logging
 from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler
@@ -15,10 +14,10 @@ import watchdog
 
 from comicapi.comicarchive import *
 from comicapi.issuestring import *
-import utils
+import comicstreamerlib.utils
 
-from database import *
-from library import Library
+from comicstreamerlib.database import *
+from comicstreamerlib.library import Library
 
 class  MonitorEventHandler(watchdog.events.FileSystemEventHandler):
     
@@ -38,7 +37,7 @@ class Monitor():
         
         self.dm = dm
         self.style = MetaDataStyle.CIX
-        self.queue = Queue.Queue(0)
+        self.queue = queue.Queue(0)
         self.paths = paths
         self.eventList = []
         self.mutex = threading.Lock()
@@ -190,8 +189,8 @@ class Monitor():
             #thumbnail generation
             image_data = ca.getPage(0)
             #now resize it
-            thumb = StringIO.StringIO()
-            utils.resize(image_data, (200, 200), thumb)
+            thumb = BytesIO()
+            comicstreamerlib.utils.resize(image_data, (200, 200), thumb)
             md.thumbnail = thumb.getvalue()
 
             return md
@@ -223,7 +222,7 @@ class Monitor():
         ix = {}
         db_set = set()
         current_set = set()
-        filelist = utils.get_recursive_filelist(dirs)
+        filelist = comicstreamerlib.utils.get_recursive_filelist(dirs)
         for path in filelist:
             current_set.add((path, datetime.utcfromtimestamp(os.path.getmtime(path))))
         logging.info("NEW -- current_set size [%d]" % len(current_set))
@@ -303,7 +302,7 @@ if __name__ == '__main__':
         sys.exit(-1)    
 
     
-    utils.fix_output_encoding()
+    comicstreamerlib.utils.fix_output_encoding()
     
     dm = DataManager()
     dm.create()

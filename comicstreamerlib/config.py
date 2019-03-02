@@ -30,7 +30,7 @@ import io
 from configobj import ConfigObj
 from validate import Validator
 
-from options import Options
+from comicstreamerlib.options import Options
 from comicapi.utils import which, addtopath
 from comicstreamerlib.folders import AppFolders
 
@@ -83,7 +83,7 @@ class ComicStreamerConfig(ConfigObj):
             tmp['security']['cookie_secret'] = base64.b64encode(uuid.uuid4().bytes + uuid.uuid4().bytes)
 
         # normalize the folder list
-        tmp['general']['folder_list'] = [os.path.abspath(os.path.normpath(unicode(a))) for a in tmp['general']['folder_list']]
+        tmp['general']['folder_list'] = [os.path.abspath(os.path.normpath(str(a))) for a in tmp['general']['folder_list']]
 
         self.merge(tmp)
         if not os.path.exists( self.filename ):
@@ -104,7 +104,7 @@ class ComicStreamerConfig(ConfigObj):
             modified = True
 
         if opts.folder_list is not None:
-            self['general']['folder_list'] = [os.path.abspath(os.path.normpath(unicode(a))) for a in opts.folder_list]
+            self['general']['folder_list'] = [os.path.abspath(os.path.normpath(str(a))) for a in opts.folder_list]
             modified = True
         if opts.webroot is not None:
             self['general']['webroot'] = opts.webroot

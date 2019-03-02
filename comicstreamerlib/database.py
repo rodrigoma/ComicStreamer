@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
  
 from datetime import date,datetime
 import sqlalchemy
@@ -8,8 +8,8 @@ import uuid
 import logging
 import os
 
-import utils
-from config import ComicStreamerConfig
+import comicstreamerlib.utils
+from comicstreamerlib.config import ComicStreamerConfig
 from comicstreamerlib.folders import AppFolders
 
 from sqlalchemy.orm import scoped_session
@@ -61,7 +61,7 @@ def alchemy_encoder():
 
             if isinstance(obj,_AssociationList):
                 # Convert association list into python list
-                return list(obj)
+                return(obj.col)
             
             if isinstance(obj.__class__, DeclarativeMeta):
                 # don't re-visit self
@@ -152,7 +152,7 @@ class MyComparator(ColumnProperty.Comparator):
         #return func.lower(self.__clause_element__()) == func.lower(other)
         #print "-----------ATB------", type(self.__clause_element__()), type(other)
         # for the children objects, make all equal comparisons be likes
-        return self.__clause_element__().ilike(func.lower(unicode(other)))
+        return self.__clause_element__().ilike(func.lower(str(other)))
 
 
 class Comic(Base):
@@ -241,7 +241,7 @@ class Comic(Base):
         # iterate over the list of credits mini dicts:
         for c in self.credits_raw:
             if c.role and c.person:
-                if not out_dict.has_key(c.role.name):
+                if not c.role.name in out_dict:
                     out_dict[c.role.name] = []
                 out_dict[c.role.name].append(c.person.name)
         
@@ -427,7 +427,7 @@ class DataManager():
            schemainfo = SchemaInfo()
            schemainfo.schema_version = SCHEMA_VERSION
            session.add(schemainfo)
-           logging.debug("Setting scheme version".format(schemainfo.schema_version))
+           logging.debug("Setting scheme version: {}".format(schemainfo.schema_version))
            session.commit()
         else:
             if results.schema_version != SCHEMA_VERSION:
@@ -436,11 +436,11 @@ class DataManager():
         results = session.query(DatabaseInfo).first()
         if results is None:
            dbinfo = DatabaseInfo()
-           dbinfo.uuid = unicode(uuid.uuid4().hex)
+           dbinfo.uuid = str(uuid.uuid4().hex)
            dbinfo.last_updated = datetime.utcnow()
            session.add(dbinfo)
            session.commit()
-           logging.debug("Added new uuid".format(dbinfo.uuid))
+           logging.debug("Added new uuid: {}".format(dbinfo.uuid))
 
         """
         # Eventually, there will be multi-user support, but for now,

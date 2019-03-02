@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 ComicStreamer main server classes
@@ -28,25 +28,25 @@ import logging.handlers
 import platform
 import signal
 
-import utils
-from config import ComicStreamerConfig
+import comicstreamerlib.utils
+from comicstreamerlib.config import ComicStreamerConfig
 from comicstreamerlib.folders import AppFolders
-from options import Options
-from server import APIServer
-from bonjour import BonjourThread
-#from gui import GUIThread    
+from comicstreamerlib.options import Options
+from comicstreamerlib.server import APIServer
+from comicstreamerlib.bonjour import BonjourThread
+#from gui import GUIThread
 
- 
+
 class Launcher():
     def signal_handler(self, signal, frame):
-        print "Caught Ctrl-C.  exiting."
+        print ("Caught Ctrl-C.  exiting.")
         if self.apiServer:
             self.apiServer.shutdown()
         sys.exit()
     
-            
+
     def go(self):
-        utils.fix_output_encoding()
+        comicstreamerlib.utils.fix_output_encoding()
         self.apiServer = None
         
         #Configure logging
@@ -65,8 +65,8 @@ class Launcher():
         
         # By default only do info level to console
         sh = logging.StreamHandler(sys.stdout)
-        sh.setLevel(logging.INFO)
         sh.setFormatter(formatter)
+        sh.setLevel(logging.INFO)
         logger.addHandler(sh)
     
         config = ComicStreamerConfig()
@@ -103,7 +103,6 @@ class Launcher():
             if platform.system() == "Darwin":
                 from gui_mac import MacGui
                 MacGui(self.apiServer).run()
-        
             elif platform.system() == "Windows":
                 from gui_win import WinGui
                 WinGui(self.apiServer).run()

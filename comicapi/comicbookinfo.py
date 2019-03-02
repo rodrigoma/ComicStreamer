@@ -23,8 +23,8 @@ import json
 from datetime import datetime
 import zipfile
 
-from genericmetadata import GenericMetadata
-import utils
+from comicapi.genericmetadata import GenericMetadata
+import comicapi.utils
 #import ctversion
 
 class ComicBookInfo:
@@ -74,8 +74,8 @@ class ComicBookInfo:
 			# reverse look-up
 			pattern = metadata.language
 			metadata.language = None
-			for key in utils.getLanguageDict():
-				if utils.getLanguageDict()[ key ] == pattern.encode('utf-8'):
+			for key in comicapi.utils.getLanguageDict():
+				if comicapi.utils.getLanguageDict()[ key ] == pattern.encode('utf-8'):
 					metadata.language = key
 					break
 		
@@ -115,7 +115,7 @@ class ComicBookInfo:
 		#helper func
 		def toInt(s):
 			i = None
-			if type(s) in [ str, unicode, int ]:
+			if type(s) in [ str, int ]:
 				try:
 					i = int(s)
 				except ValueError:
@@ -133,7 +133,7 @@ class ComicBookInfo:
 		assign( 'genre', metadata.genre )
 		assign( 'volume', toInt(metadata.volume) )
 		assign( 'numberOfVolumes', toInt(metadata.volumeCount) )
-		assign( 'language', utils.getLanguageFromISO(metadata.language) )
+		assign( 'language', comicapi.utils.getLanguageFromISO(metadata.language) )
 		assign( 'country', metadata.country )
 		assign( 'rating', metadata.criticalRating )
 		assign( 'credits', metadata.credits )
