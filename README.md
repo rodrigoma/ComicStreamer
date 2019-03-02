@@ -47,7 +47,7 @@ please contact me if you need any special support or features.
 
 -----
 
-## Requirements (for running from source) 
+## Requirements (for running from source)
 
 - Python 3.7 or later
 - Extra Python modules installed via pip (```python3 -m pip install -r requirements.txt```)
@@ -74,7 +74,7 @@ From the source, just run "comicstreamer" in the base folder (on windows you may
 
 For the binary builds, run from the installed app icon.  There should be no taskbar/dock presence, but an icon should appear in the system tray (windows), or status menu (mac).
 
-A web browser should automatically open to "http://localhost:32500".  On your first run, use the "config" page to set the comic folders, and the "control" page to restart the server.  It will start scanning, and all comics in the given folders and sub folders will be added to database.
+A web browser should automatically open to [http://localhost:32500"](http://localhost:32500").  On your first run, use the "config" page to set the comic folders, and the "control" page to restart the server.  It will start scanning, and all comics in the given folders and sub folders will be added to database.
 
 Some tips:
 
