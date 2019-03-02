@@ -69,7 +69,7 @@ def alchemy_encoder():
 
             if isinstance(obj, _AssociationList):
                 # Convert association list into python list
-                return (obj.col)
+                return ([x.name for x in obj.col])
 
             if isinstance(obj.__class__, DeclarativeMeta):
                 # don't re-visit self
