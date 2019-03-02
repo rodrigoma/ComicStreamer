@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# Do not change the previous lines. See PEP 8, PEP 263.
 """
 ComicStreamer main server classes
-"""
 
-"""
 Copyright 2012-2014  Anthony Beville
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,70 +37,68 @@ from comicstreamerlib.server import APIServer
 from comicstreamerlib.bonjour import BonjourThread
 #from gui import GUIThread
 
+#Configure logging
+# root level
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+# By default only do info level to console
+sh = logging.StreamHandler()
+sh.setLevel(logging.INFO)
+
 
 class Launcher():
     def signal_handler(self, signal, frame):
-        print ("Caught Ctrl-C.  exiting.")
+        print("Caught Ctrl-C.  exiting.")
         if self.apiServer:
             self.apiServer.shutdown()
         sys.exit()
-    
 
     def go(self):
         comicstreamerlib.utils.fix_output_encoding()
         self.apiServer = None
-        
-        #Configure logging
-        # root level        
-        logger = logging.getLogger()    
-        logger.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        
-        log_file = os.path.join(AppFolders.logs(), "ComicStreamer.log")
-        if not os.path.exists(os.path.dirname(log_file)):
-            os.makedirs(os.path.dirname(log_file))
-        fh = logging.handlers.RotatingFileHandler(log_file, maxBytes=1048576, backupCount=4, encoding="UTF8")
-        fh.setLevel(logging.DEBUG)
-        fh.setFormatter(formatter)
-        logger.addHandler(fh)
-        
-        # By default only do info level to console
-        sh = logging.StreamHandler(sys.stdout)
-        sh.setFormatter(formatter)
-        sh.setLevel(logging.INFO)
-        logger.addHandler(sh)
-    
-        config = ComicStreamerConfig()
+
         opts = Options()
         opts.parseCmdLineArgs()
-    
-        # set file logging according to config file
-        #fh.setLevel(config['general']['loglevel'])
-            
-        # turn up the log level, if requested
+        # turn up the console log level, if requested
         if opts.debug:
             sh.setLevel(logging.DEBUG)
         elif opts.quiet:
             sh.setLevel(logging.CRITICAL)
-    
+
+        formatter = logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(message)s')
+
+        sh.setFormatter(formatter)
+        logger.addHandler(sh)
+
+        log_file = os.path.join(AppFolders.logs(), "ComicStreamer.log")
+        if not os.path.exists(os.path.dirname(log_file)):
+            os.makedirs(os.path.dirname(log_file))
+        fh = logging.handlers.RotatingFileHandler(
+            log_file, maxBytes=1048576, backupCount=4, encoding="UTF8")
+        fh.setLevel(logging.DEBUG)
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+
+        config = ComicStreamerConfig()
         config.applyOptions(opts)
-        
+
         self.apiServer = APIServer(config, opts)
-    
+
         self.apiServer.logFileHandler = fh
         self.apiServer.logConsoleHandler = sh
-        
+
         signal.signal(signal.SIGINT, self.signal_handler)
-    
-    
+
         bonjour = BonjourThread(self.apiServer.port)
         bonjour.start()
-    
+
         if getattr(sys, 'frozen', None):
             # A frozen app will run a GUI
             self.apiServer.runInThread()
-       
-            logging.info("starting GUI loop")    
+
+            logging.info("starting GUI loop")
             if platform.system() == "Darwin":
                 from gui_mac import MacGui
                 MacGui(self.apiServer).run()
@@ -110,12 +109,12 @@ class Launcher():
         else:
             #from gui_qt import QtBasedGui
             #self.apiServer.runInThread()
-            #QtBasedGui(self.apiServer).run()			
+            #QtBasedGui(self.apiServer).run()
             #self.apiServer.shutdown()
             self.apiServer.run()
-            
-        logging.info("gui shoudld be done now")
+
+        logging.info("GUI should be done now")
+
 
 def main():
     Launcher().go()
-
