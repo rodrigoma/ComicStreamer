@@ -1,8 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# Do not change the previous lines. See PEP 8, PEP 263.
+#
 """
 CLI options class for comicstreamer app
-"""
 
-"""
 Copyright 2014  Anthony Beville
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +34,7 @@ try:
 except:
     pass
 
+
 class Options:
     help_text = """ 
 Usage: {0} [OPTION]... [FOLDER LIST]
@@ -53,7 +57,6 @@ for comics to add to the database (persisted)
   
     """
 
-
     def __init__(self):
         self.port = None
         self.folder_list = None
@@ -65,47 +68,58 @@ for comics to add to the database (persisted)
         self.reset_and_run = False
         self.webroot = None
         self.user_dir = None
-        
-    def display_msg_and_quit( self, msg, code, show_help=False ):
+
+    def display_msg_and_quit(self, msg, code, show_help=False):
         appname = os.path.basename(sys.argv[0])
         if msg is not None:
-            print( msg )
+            print(msg)
         if show_help:
-            print (self.help_text.format(appname))
+            print(self.help_text.format(appname))
         else:
-            print ("For more help, run with '--help'")
-        sys.exit(code)  
+            print("For more help, run with '--help'")
+        sys.exit(code)
 
     def parseCmdLineArgs(self):
-        
-        if platform.system() == "Darwin" and hasattr(sys, "frozen") and sys.frozen == 1:
+
+        if platform.system() == "Darwin" and hasattr(
+                sys, "frozen") and sys.frozen == 1:
             # remove the PSN ("process serial number") argument from OS/X
-            input_args = [a for a in sys.argv[1:] if "-psn_0_" not in  a ]
+            input_args = [a for a in sys.argv[1:] if "-psn_0_" not in a]
         else:
             input_args = sys.argv[1:]
-            
+
         # parse command line options
         try:
-            opts, args = getopt.getopt( input_args, 
-                       "dp:hrq", 
-                       [ "help", "port=", "webroot=", "version", "reset", "debug", "quiet",
-                    "nomonitor", "nobrowser", "user-dir=",
-                    "_resetdb_and_run", #private
-                    ] )
+            opts, args = getopt.getopt(
+                input_args,
+                "dp:hrq",
+                [
+                    "help",
+                    "port=",
+                    "webroot=",
+                    "version",
+                    "reset",
+                    "debug",
+                    "quiet",
+                    "nomonitor",
+                    "nobrowser",
+                    "user-dir=",
+                    "_resetdb_and_run",  #private
+                ])
 
         except getopt.GetoptError as err:
-            self.display_msg_and_quit( str(err), 2 )
-        
+            self.display_msg_and_quit(str(err), 2)
+
         # process options
         for o, a in opts:
             if o in ("-r", "--reset"):
                 self.reset = True
             if o in ("-d", "--debug"):
-                self.debug = True                
+                self.debug = True
             if o in ("-q", "--quiet"):
-                self.quiet = True                
+                self.quiet = True
             if o in ("-h", "--help"):
-                self.display_msg_and_quit( None, 0, show_help=True )
+                self.display_msg_and_quit(None, 0, show_help=True)
             if o in ("-p", "--port"):
                 try:
                     self.port = int(a)
@@ -113,25 +127,31 @@ for comics to add to the database (persisted)
                     pass
             if o == "--webroot":
                 self.webroot = a
-            if o  == "--nomonitor":
+            if o == "--nomonitor":
                 self.no_monitor = True
-            if o  == "--nobrowser":
-                self.launch_browser = False                
-            if o  == "--version":
-                print ("ComicStreamer {0}:  Copyright (c) 2014 Anthony Beville".format(comicstreamerlib.csversion.version))
-                print ("Distributed under Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)")
+            if o == "--nobrowser":
+                self.launch_browser = False
+            if o == "--version":
+                print("ComicStreamer {0}:  Copyright (c) 2014 Anthony Beville".
+                      format(comicstreamerlib.csversion.version))
+                print(
+                    "Distributed under Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)"
+                )
                 sys.exit(0)
             if o == "--_resetdb_and_run":
                 self.reset_and_run = True
             if o == "--user-dir":
                 self.user_dir = a
-                
-                
+
         filename_encoding = sys.getfilesystemencoding()
         if len(args) > 0:
             #self.folder_list = [os.path.normpath(a.decode(filename_encoding)) for a in args]
-            self.folder_list = [os.path.abspath(os.path.normpath(str(a.decode(filename_encoding)))) for a in args]
-        
+            self.folder_list = [
+                os.path.abspath(
+                    os.path.normpath(str(a.decode(filename_encoding))))
+                for a in args
+            ]
+
         # remove certain private flags from args
         try:
             sys.argv.remove("--_resetdb_and_run")

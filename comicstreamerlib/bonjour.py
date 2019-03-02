@@ -1,10 +1,11 @@
-# coding=utf-8
-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# Do not change the previous lines. See PEP 8, PEP 263.
+#
 """
 ComicStreamer bonjour thread class
-"""
 
-"""
 Copyright 2012-2014  Anthony Beville
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,27 +32,34 @@ try:
 except:
     have_bonjour = False
 
+
 class BonjourThread(threading.Thread):
     def __init__(self, port):
         super(BonjourThread, self).__init__()
-        self.name    = socket.gethostname()
+        self.name = socket.gethostname()
         self.regtype = "_comicstreamer._tcp"
-        self.port    = port
+        self.port = port
         self.daemon = True
-         
-    def register_callback(self, sdRef, flags, errorCode, name, regtype, domain):
+
+    def register_callback(self, sdRef, flags, errorCode, name, regtype,
+                          domain):
         if errorCode == pybonjour.kDNSServiceErr_NoError:
-            logging.info("Registered bonjour server: {0}:{1}:(port {2})".format(name,regtype,self.port))
-        
+            logging.info(
+                "Registered bonjour server: {0}:{1}:(port {2})".format(
+                    name, regtype, self.port))
+
     def run(self):
         if not have_bonjour:
-            logging.warn("Cannot run bonjour server!  Maybe some packages need to be installed?")
+            logging.warn(
+                "Cannot run bonjour server!  Maybe some packages need to be installed?"
+            )
             return
-        
-        sdRef = pybonjour.DNSServiceRegister(name = self.name,
-                                             regtype = self.regtype,
-                                             port = self.port,
-                                             callBack = self.register_callback)
+
+        sdRef = pybonjour.DNSServiceRegister(
+            name=self.name,
+            regtype=self.regtype,
+            port=self.port,
+            callBack=self.register_callback)
         try:
             try:
                 while True:
@@ -65,4 +73,3 @@ class BonjourThread(threading.Thread):
 
 
 #-------------------------------------------------
-

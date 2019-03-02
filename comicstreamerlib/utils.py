@@ -1,10 +1,10 @@
-# coding=utf-8
-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# Do not change the previous lines. See PEP 8, PEP 263.
 """
 Some generic utilities
-"""
 
-"""
 Copyright 2012-2014  Anthony Beville
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,58 +40,65 @@ from comicstreamerlib.folders import AppFolders
 import imghdr
 
 from datetime import datetime, timedelta
-	
-class UtilsVars:
-	already_fixed_encoding = False
 
-Image.MAX_IMAGE_PIXELS = None #Removed image size limit for testing
+
+class UtilsVars:
+    already_fixed_encoding = False
+
+
+Image.MAX_IMAGE_PIXELS = None  #Removed image size limit for testing
+
 
 def get_actual_preferred_encoding():
-	preferred_encoding = locale.getpreferredencoding()
-	if platform.system() == "Darwin":	
-		preferred_encoding = "utf-8"
-	return preferred_encoding
-	
-def fix_output_encoding( ):
-	if not UtilsVars.already_fixed_encoding:
-		# this reads the environment and inits the right locale
-		locale.setlocale(locale.LC_ALL, "")
+    preferred_encoding = locale.getpreferredencoding()
+    if platform.system() == "Darwin":
+        preferred_encoding = "utf-8"
+    return preferred_encoding
 
-		# try to make stdout/stderr encodings happy for unicode printing
-		preferred_encoding = get_actual_preferred_encoding()
-		sys.stdout = codecs.getwriter(preferred_encoding)(sys.stdout)
-		sys.stderr = codecs.getwriter(preferred_encoding)(sys.stderr)
-		UtilsVars.already_fixed_encoding = True
 
-def get_recursive_filelist( pathlist ):
-	"""
+def fix_output_encoding():
+    if not UtilsVars.already_fixed_encoding:
+        # this reads the environment and inits the right locale
+        locale.setlocale(locale.LC_ALL, "")
+
+        # try to make stdout/stderr encodings happy for unicode printing
+        preferred_encoding = get_actual_preferred_encoding()
+        sys.stdout = codecs.getwriter(preferred_encoding)(sys.stdout)
+        sys.stderr = codecs.getwriter(preferred_encoding)(sys.stderr)
+        UtilsVars.already_fixed_encoding = True
+
+
+def get_recursive_filelist(pathlist):
+    """
 	Get a recursive list of of all files under all path items in the list
 	"""
-	filename_encoding = sys.getfilesystemencoding()	
-	filelist = []
-	for p in pathlist:
-		# if path is a folder, walk it recursivly, and all files underneath
-		if os.path.isdir( p ):
-			for root,dirs,files in os.walk( p ):
-				# issue #26: try to exclude hidden files and dirs
-				files = [f for f in files if not f[0] == '.']
-				dirs[:] = [d for d in dirs if not d[0] == '.']
-				for f in files:
-					#if type(f) == str:
-					#	#make sure string is unicode
-					#	f = f.decode(filename_encoding, 'replace')
-					#elif type(f) != str:
-					#	#it's probably a QString
-					#	f = str(f)
-					filelist.append(os.path.join(root,f))
-		else:
-			filelist.append(p)
-	
-	return filelist
-	
+    filename_encoding = sys.getfilesystemencoding()
+    filelist = []
+    for p in pathlist:
+        # if path is a folder, walk it recursivly, and all files underneath
+        if os.path.isdir(p):
+            for root, dirs, files in os.walk(p):
+                # issue #26: try to exclude hidden files and dirs
+                files = [f for f in files if not f[0] == '.']
+                dirs[:] = [d for d in dirs if not d[0] == '.']
+                for f in files:
+                    #if type(f) == str:
+                    #	#make sure string is unicode
+                    #	f = f.decode(filename_encoding, 'replace')
+                    #elif type(f) != str:
+                    #	#it's probably a QString
+                    #	f = str(f)
+                    filelist.append(os.path.join(root, f))
+        else:
+            filelist.append(p)
+
+    return filelist
+
+
 def touch(fname, times=None):
     with open(fname, 'a'):
         os.utime(fname, times)
+
 
 def getDigest(password):
 
@@ -101,12 +108,14 @@ def getDigest(password):
     time.sleep(.5)
     return digest
 
+
 def utc_to_local(utc_dt):
     # get integer timestamp to avoid precision lost
     timestamp = calendar.timegm(utc_dt.timetuple())
     local_dt = datetime.fromtimestamp(timestamp)
     assert utc_dt.resolution >= timedelta(microseconds=1)
     return local_dt.replace(microsecond=utc_dt.microsecond)
+
 
 def alert(title, msg):
     if getattr(sys, 'frozen', None):
@@ -119,10 +128,12 @@ def alert(title, msg):
             tkMessageBox.showinfo(title, msg)
         elif platform.system() == "Windows":
             import win32gui
-            win32gui.MessageBox(0,msg,title,0)
+            win32gui.MessageBox(0, msg, title, 0)
+
 
 def collapseRepeats(string, ch):
-	return re.sub("/"+ ch + "*", ch, string) 
+    return re.sub("/" + ch + "*", ch, string)
+
 
 def resizeImage(max, image_data):
     # disable WebP for now, due a memory leak in python library
@@ -132,14 +143,15 @@ def resizeImage(max, image_data):
             image_data = fd.read()
 
     im = Image.open(StringIO(image_data)).convert('RGB')
-    w,h = im.size
+    w, h = im.size
     if max < h:
-        im.thumbnail((w,max), Image.ANTIALIAS)
+        im.thumbnail((w, max), Image.ANTIALIAS)
         output = StringIO()
         im.save(output, format="JPEG")
         return output.getvalue()
     else:
         return image_data
+
 
 # optimized thumbnail generation
 # simple comparison with resizeImage:
@@ -162,24 +174,26 @@ def resize(img, box, out, fit=False):
 
     #preresize image with factor 2, 4, 8 and fast algorithm
     factor = 1
-    while img.size[0]/factor > 2*box[0] and img.size[1]*2/factor > 2*box[1]:
-        factor *=2
+    while img.size[0] / factor > 2 * box[0] and img.size[
+            1] * 2 / factor > 2 * box[1]:
+        factor *= 2
     if factor > 1:
-        img.thumbnail((img.size[0]/factor, img.size[1]/factor), Image.NEAREST)
+        img.thumbnail((img.size[0] / factor, img.size[1] / factor),
+                      Image.NEAREST)
 
     #calculate the cropping box and get the cropped part
     if fit:
         x1 = y1 = 0
         x2, y2 = img.size
-        wRatio = 1.0 * x2/box[0]
-        hRatio = 1.0 * y2/box[1]
+        wRatio = 1.0 * x2 / box[0]
+        hRatio = 1.0 * y2 / box[1]
         if hRatio > wRatio:
-            y1 = int(y2/2-box[1]*wRatio/2)
-            y2 = int(y2/2+box[1]*wRatio/2)
+            y1 = int(y2 / 2 - box[1] * wRatio / 2)
+            y2 = int(y2 / 2 + box[1] * wRatio / 2)
         else:
-            x1 = int(x2/2-box[0]*hRatio/2)
-            x2 = int(x2/2+box[0]*hRatio/2)
-        img = img.crop((x1,y1,x2,y2))
+            x1 = int(x2 / 2 - box[0] * hRatio / 2)
+            x2 = int(x2 / 2 + box[0] * hRatio / 2)
+        img = img.crop((x1, y1, x2, y2))
 
     #Resize the image with best quality algorithm ANTI-ALIAS
     img.thumbnail(box, Image.ANTIALIAS)

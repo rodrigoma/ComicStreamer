@@ -1,9 +1,16 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# Do not change the previous lines. See PEP 8, PEP 263.
+#
+
 import sys
 import webbrowser
 import os
 from comicstreamerlib.folders import AppFolders
 
-from PyQt4 import QtGui,QtCore
+from PyQt4 import QtGui, QtCore
+
 
 class SystemTrayIcon(QtGui.QSystemTrayIcon):
     def __init__(self, icon, app):
@@ -12,32 +19,31 @@ class SystemTrayIcon(QtGui.QSystemTrayIcon):
         self.menu = QtGui.QMenu(None)
         exitAction = self.menu.addAction("Exit")
         self.setContextMenu(self.menu)
-        exitAction.triggered.connect( self.quit )
+        exitAction.triggered.connect(self.quit)
 
     def quit(self):
 
         QtCore.QCoreApplication.quit()
-        
+
 
 class QtBasedGui():
     def __init__(self, apiServer):
-        self.apiServer =  apiServer
-        
-        self.app = QtGui.QApplication(sys.argv)
-        
-        pixmap = QtGui.QPixmap(AppFolders.imagePath("trout.png"))
-        icon = QtGui.QIcon( pixmap.scaled(16,16))       
+        self.apiServer = apiServer
 
-        self.trayIcon = SystemTrayIcon(icon,self)
-    
-        self.trayIcon.show() 
+        self.app = QtGui.QApplication(sys.argv)
+
+        pixmap = QtGui.QPixmap(AppFolders.imagePath("trout.png"))
+        icon = QtGui.QIcon(pixmap.scaled(16, 16))
+
+        self.trayIcon = SystemTrayIcon(icon, self)
+
+        self.trayIcon.show()
 
     def run(self):
         try:
             self.app.exec_()
         except KeyboardInterrupt:
             pass
-
 
 
 if __name__ == '__main__':

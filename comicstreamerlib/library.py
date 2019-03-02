@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
+# Do not change the previous lines. See PEP 8, PEP 263.
+#
 """Encapsulates all data acces code to maintain the comic library"""
 from datetime import datetime
 import dateutil
@@ -15,7 +20,6 @@ from comicapi.issuestring import IssueString
 
 
 class Library:
-
     def __init__(self, session_getter):
         self.getSession = session_getter
         self.comicArchiveList = []
@@ -33,7 +37,7 @@ class Library:
     def getComic(self, comic_id):
         return self.getSession().query(Comic).get(int(comic_id))
 
-    def getComicPage(self, comic_id, page_number, max_height = None):
+    def getComicPage(self, comic_id, page_number, max_height=None):
         (path, page_count) = self.getSession().query(Comic.path, Comic.page_count) \
                                  .filter(Comic.id == int(comic_id)).first()
 
@@ -53,7 +57,8 @@ class Library:
         # resize image
         if max_height is not None:
             try:
-                image_data = comicstreamerlib.utils.resizeImage(int(max_height), image_data)
+                image_data = comicstreamerlib.utils.resizeImage(
+                    int(max_height), image_data)
             except Exception as e:
                 #logging.error(e)
                 pass
@@ -69,20 +74,22 @@ class Library:
         stats['last_updated'] = dbinfo.last_updated
         stats['created'] = dbinfo.created
 
-        stats['series'] = session.query(func.count(distinct(Comic.series))).scalar()
+        stats['series'] = session.query(func.count(distinct(
+            Comic.series))).scalar()
         stats['persons'] = session.query(Person).count()
 
         return stats
 
     def getComicPaths(self):
-        return self.getSession().query(Comic.id, Comic.path, Comic.mod_ts).all()
+        return self.getSession().query(Comic.id, Comic.path,
+                                       Comic.mod_ts).all()
 
-    def recentlyAddedComics(self, limit = 10):
+    def recentlyAddedComics(self, limit=10):
         return self.getSession().query(Comic)\
                    .order_by(Comic.added_ts.desc())\
                    .limit(limit)
 
-    def recentlyReadComics(self, limit = 10):
+    def recentlyReadComics(self, limit=10):
         return self.getSession().query(Comic)\
                    .filter(Comic.lastread_ts != "")\
                    .order_by(Comic.lastread_ts.desc())\
@@ -183,17 +190,18 @@ class Library:
 
         if md.genre is not None:
             for g in list(set(md.genre.split(","))):
-                genre = self.getNamedEntity(Genre,  g.strip())
+                genre = self.getNamedEntity(Genre, g.strip())
                 comic.genres_raw.append(genre)
 
         if md.tags is not None:
             for gt in list(set(md.tags)):
-                generictag = self.getNamedEntity(GenericTag,  gt.strip())
+                generictag = self.getNamedEntity(GenericTag, gt.strip())
                 comic.generictags_raw.append(generictag)
 
         if md.credits is not None:
             for credit in md.credits:
-                role = self.getNamedEntity(Role, credit['role'].lower().strip())
+                role = self.getNamedEntity(Role,
+                                           credit['role'].lower().strip())
                 person = self.getNamedEntity(Person, credit['person'].strip())
                 comic.credits_raw.append(Credit(person, role))
 
@@ -231,7 +239,8 @@ class Library:
 
     def _dbUpdated(self):
         """Updates DatabaseInfo status"""
-        self.getSession().query(DatabaseInfo).first().last_updated = datetime.utcnow()
+        self.getSession().query(
+            DatabaseInfo).first().last_updated = datetime.utcnow()
 
     def list(self, criteria={}, paging=None):
         if paging is None:
@@ -325,29 +334,29 @@ class Library:
         if hasValue(keyphrase_filter):
             keyphrase_filter = str(keyphrase_filter).replace("*", "%")
             keyphrase_filter = "%" + keyphrase_filter + "%"
-            query = query.filter( Comic.series.ilike(keyphrase_filter)
-                                | Comic.title.ilike(keyphrase_filter)
-                                | Comic.publisher.ilike(keyphrase_filter)
-                                | Comic.path.ilike(keyphrase_filter)
-                                | Comic.comments.ilike(keyphrase_filter)
-                                #| Comic.characters_raw.any(Character.name.ilike(keyphrase_filter))
-                                #| Comic.teams_raw.any(Team.name.ilike(keyphrase_filter))
-                                #| Comic.locations_raw.any(Location.name.ilike(keyphrase_filter))
-                                #| Comic.storyarcs_raw.any(StoryArc.name.ilike(keyphrase_filter))
-                                | Comic.persons_raw.any(Person.name.ilike(keyphrase_filter))
-                            )
+            query = query.filter(
+                Comic.series.ilike(keyphrase_filter)
+                | Comic.title.ilike(keyphrase_filter)
+                | Comic.publisher.ilike(keyphrase_filter)
+                | Comic.path.ilike(keyphrase_filter)
+                | Comic.comments.ilike(keyphrase_filter)
+                #| Comic.characters_raw.any(Character.name.ilike(keyphrase_filter))
+                #| Comic.teams_raw.any(Team.name.ilike(keyphrase_filter))
+                #| Comic.locations_raw.any(Location.name.ilike(keyphrase_filter))
+                #| Comic.storyarcs_raw.any(StoryArc.name.ilike(keyphrase_filter))
+                | Comic.persons_raw.any(Person.name.ilike(keyphrase_filter)))
 
         def addQueryOnScalar(query, obj_prop, filt):
             if hasValue(filt):
-                filt = str(filt).replace("*","%")
-                return query.filter( obj_prop.ilike(filt))
+                filt = str(filt).replace("*", "%")
+                return query.filter(obj_prop.ilike(filt))
             else:
                 return query
 
         def addQueryOnList(query, obj_list, list_prop, filt):
             if hasValue(filt):
-                filt = str(filt).replace("*","%")
-                return query.filter( obj_list.any(list_prop.ilike(filt)))
+                filt = str(filt).replace("*", "%")
+                return query.filter(obj_list.any(list_prop.ilike(filt)))
             else:
                 return query
 
@@ -356,11 +365,15 @@ class Library:
         query = addQueryOnScalar(query, Comic.path, path_filter)
         query = addQueryOnScalar(query, Comic.folder, folder_filter)
         query = addQueryOnScalar(query, Comic.publisher, publisher)
-        query = addQueryOnList(query, Comic.characters_raw, Character.name, character)
-        query = addQueryOnList(query, Comic.generictags_raw, GenericTag.name, tag)
+        query = addQueryOnList(query, Comic.characters_raw, Character.name,
+                               character)
+        query = addQueryOnList(query, Comic.generictags_raw, GenericTag.name,
+                               tag)
         query = addQueryOnList(query, Comic.teams_raw, Team.name, team)
-        query = addQueryOnList(query, Comic.locations_raw, Location.name, location)
-        query = addQueryOnList(query, Comic.storyarcs_raw, StoryArc.name, storyarc)
+        query = addQueryOnList(query, Comic.locations_raw, Location.name,
+                               location)
+        query = addQueryOnList(query, Comic.storyarcs_raw, StoryArc.name,
+                               storyarc)
         query = addQueryOnList(query, Comic.genres_raw, Genre.name, genre)
 
         if hasValue(volume):
@@ -402,7 +415,8 @@ class Library:
         if hasValue(lastread_since):
             try:
                 dt = dateutil.parser.parse(lastread_since)
-                query = query.filter(Comic.lastread_ts >= dt, Comic.lastread_ts != "")
+                query = query.filter(Comic.lastread_ts >= dt,
+                                     Comic.lastread_ts != "")
             except:
                 pass
 
@@ -458,7 +472,8 @@ class Library:
                 self.comicArchiveList.append(ca)
                 return ca
         else:
-            ca = ComicArchive(path, default_image_path=AppFolders.imagePath("default.jpg"))
+            ca = ComicArchive(
+                path, default_image_path=AppFolders.imagePath("default.jpg"))
             self.comicArchiveList.append(ca)
             if len(self.comicArchiveList) > 10:
                 self.comicArchiveList.pop(0)
