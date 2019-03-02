@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
 # Do not change the previous lines. See PEP 8, PEP 263.
