@@ -50,11 +50,8 @@ class AppFolders():
 
     @staticmethod
     def userFolder():
-
         opts = Options()
         opts.parseCmdLineArgs()
-
-        filename_encoding = sys.getfilesystemencoding()
 
         if opts.user_dir is not None:
             folder = opts.user_dir
@@ -72,7 +69,6 @@ class AppFolders():
 
     @staticmethod
     def appBase():
-        encoding = sys.getfilesystemencoding()
         if getattr(sys, 'frozen', None):
             if platform.system() == "Darwin":
                 return sys._MEIPASS
