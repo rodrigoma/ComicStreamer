@@ -81,7 +81,11 @@ imghdr.tests.append(my_test_webp)
 
 # to allow a blank username
 def fix_username(username):
-    return username + b"XX"
+    try:
+        return username + b"XX"
+    except:
+        # Fix for Python 3.5
+        return (username + "XX").encode()
 
 
 def custom_get_current_user(handler):
