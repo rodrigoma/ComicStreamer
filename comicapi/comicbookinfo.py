@@ -32,7 +32,7 @@ class ComicBookInfo:
 
 	def metadataFromString( self, string ):
 	
-		cbi_container = json.loads( unicode(string, 'utf-8') )
+		cbi_container = json.loads( str(string, 'utf-8') )
 
 		metadata = GenericMetadata()
 

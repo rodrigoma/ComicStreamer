@@ -310,7 +310,8 @@ class Monitor():
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
-        print >> sys.stderr, "usage:  {0} comic_folder ".format(sys.argv[0])
+        errMsg = u"usage:  {0} comic_folder ".format(sys.argv[0])
+        sys.stderr.buffer.write(bytes(errMsg,"UTF-8"))
         sys.exit(-1)
 
     comicstreamerlib.utils.fix_output_encoding()
