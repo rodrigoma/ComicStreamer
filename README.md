@@ -138,11 +138,13 @@ Create and activate venv:
 
 ```bash
 python3 -m venv /opt/comicstreamer
-source /opt/comicstreamer/activate
+source /opt/comicstreamer/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install --upgrade setuptools
 python3 -m pip install wheel
 ```
 
-Download ComicStreamer and install with needed modules:
+Download ComicStreamer and install needed modules and libraries:
 
 ```bash
 cd /opt/comicstreamer/
@@ -166,6 +168,7 @@ rm -rf pybonjour-python3
 ```
 
 Test everything is ok, with an execution from shell:
+
 ```bash
 /opt/comicstreamer/bin/python3 /opt/comicstreamer/master/comicstreamer --nobrowser --user-dir /opt/comicstreamer/.ComicStreamer
 ```
