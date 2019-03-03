@@ -68,7 +68,7 @@ class OpenableRarFile(rarfile.RarFile):
             self._close(handle)
         if not found:
             raise KeyError('There is no item named %r in the archive' % member)
-        return ''.join(buf)
+        return b''.join(buf)
 
 
 if platform.system() == "Windows":
@@ -122,12 +122,14 @@ class ZipArchiver:
         try:
             data = zf.read( archive_file )
         except zipfile.BadZipfile as e:
-            print >> sys.stderr, u"bad zipfile [{0}]: {1} :: {2}".format(e, self.path, archive_file)
+            errMsg=u"bad zipfile [{0}]: {1} :: {2}".format(e, self.path, archive_file)
+            sys.stderr.buffer.write(bytes(errMsg,"UTF-8"))
             zf.close()
             raise IOError
         except Exception as e:
             zf.close()
-            print >> sys.stderr, u"bad zipfile [{0}]: {1} :: {2}".format(e, self.path, archive_file)
+            errMsg=u"bad zipfile [{0}]: {1} :: {2}".format(e, self.path, archive_file)
+            sys.stderr.buffer.write(bytes(errMsg,"UTF-8"))
             raise IOError
         finally:
             zf.close()
@@ -163,14 +165,15 @@ class ZipArchiver:
             zf.close()
             return namelist
         except Exception as e:
-            print >> sys.stderr, u"Unable to get zipfile list [{0}]: {1}".format(e, self.path)
+            errMsg=u"Unable to get zipfile list [{0}]: {1}".format(e, self.path)
+            sys.stderr.buffer.write(bytes(errMsg,"UTF-8"))
             return []
 
     # zip helper func
     def rebuildZipFile( self, exclude_list ):
 
         # this recompresses the zip archive, without the files in the exclude_list
-        #print ">> sys.stderr, Rebuilding zip {0} without {1}".format( self.path, exclude_list )
+        #errMsg=u"Rebuilding zip {0} without {1}".format( self.path, exclude_list )
 
         # generate temp file
         tmp_fd, tmp_name = tempfile.mkstemp( dir=os.path.dirname(self.path) )
@@ -273,7 +276,8 @@ class ZipArchiver:
                 if not self.writeZipComment( self.path, comment ):
                     return False
         except  Exception as e:
-            print >> sys.stderr, u"Error while copying to {0}: {1}".format(self.path, e)
+            errMsg=u"Error while copying to {0}: {1}".format(self.path, e)
+            sys.stderr.buffer.write(bytes(errMsg,"UTF-8"))
             return False
         else:
             return True
@@ -362,22 +366,26 @@ class RarArchiver:
                 #entries = rarc.read_files( archive_file )
 
                 if entries[0][0].file_size != len(entries[0][1]):
-                    print >> sys.stderr, u"readArchiveFile(): [file is not expected size: {0} vs {1}]  {2}:{3} [attempt # {4}]".format(
+                    errMsg=u"readArchiveFile(): [file is not expected size: {0} vs {1}]  {2}:{3} [attempt # {4}]".format(
                                 entries[0][0].file_size,len(entries[0][1]), self.path, archive_file, tries)
+                    sys.stderr.buffer.write(bytes(errMsg,"UTF-8"))
                     continue
 
             except (OSError, IOError) as e:
-                print >> sys.stderr, u"readArchiveFile(): [{0}]  {1}:{2} attempt#{3}".format(str(e), self.path, archive_file, tries)
+                errMsg=u"readArchiveFile(): [{0}]  {1}:{2} attempt#{3}".format(str(e), self.path, archive_file, tries)
+                sys.stderr.buffer.write(bytes(errMsg,"UTF-8"))
                 time.sleep(1)
             except Exception as e:
-                print >> sys.stderr, u"Unexpected exception in readArchiveFile(): [{0}] for {1}:{2} attempt#{3}".format(str(e), self.path, archive_file, tries)
+                errMsg=u"Unexpected exception in readArchiveFile(): [{0}] for {1}:{2} attempt#{3}".format(str(e), self.path, archive_file, tries)
+                sys.stderr.buffer.write(bytes(errMsg,"UTF-8"))
                 break
 
             else:
                 #Success"
                 #entries is a list of of tuples:  ( rarinfo, filedata)
                 if tries > 1:
-                    print >> sys.stderr, u"Attempted read_files() {0} times".format(tries)
+                    errMsg=u"Attempted read_files() {0} times".format(tries)
+                    sys.stderr.buffer.write(bytes(errMsg,"UTF-8"))
                 if (len(entries) == 1):
                     return entries[0][1]
                 else:
@@ -453,7 +461,8 @@ class RarArchiver:
                         namelist.append( item.filename )
 
             except (OSError, IOError) as e:
-                print >> sys.stderr, u"getArchiveFilenameList(): [{0}] {1} attempt#{2}".format(str(e), self.path, tries)
+                errMsg=u"getArchiveFilenameList(): [{0}] {1} attempt#{2}".format(str(e), self.path, tries)
+                sys.stderr.buffer.write(bytes(errMsg,"UTF-8"))
                 time.sleep(1)
 
             else:
@@ -472,7 +481,8 @@ class RarArchiver:
                 rarc = OpenableRarFile(self.path)
 
             except (OSError, IOError) as e:
-                print >> sys.stderr, u"getRARObj(): [{0}] {1} attempt#{2}".format(str(e), self.path, tries)
+                errMsg=u"getRARObj(): [{0}] {1} attempt#{2}".format(str(e), self.path, tries)
+                sys.stderr.buffer.write(bytes(errMsg,"UTF-8"))
                 time.sleep(1)
 
             else:
@@ -768,7 +778,8 @@ class ComicArchive:
             try:
                 image_data = self.archiver.readArchiveFile( filename )
             except IOError:
-                print >> sys.stderr, u"Error reading in page.  Substituting logo page."
+                errMsg=u"Error reading in page.  Substituting logo page."
+                sys.stderr.buffer.write(bytes(errMsg,"UTF-8"))
                 image_data = ComicArchive.logo_data
 
         return image_data
@@ -1013,13 +1024,15 @@ class ComicArchive:
 
     def readRawCoMet( self ):
         if not self.hasCoMet():
-            print >> sys.stderr, self.path, "doesn't have CoMet data!"
+            errMsg=u"{} doesn't have CoMet data!".format(self.path)
+            sys.stderr.buffer.write(bytes(errMsg,"UTF-8"))
             return None
 
         try:
             raw_comet = self.archiver.readArchiveFile( self.comet_filename )
         except IOError:
-            print >> sys.stderr, u"Error reading in raw CoMet!"
+            errMsg=u"Error reading in raw CoMet!"
+            sys.stderr.buffer.write(bytes(errMsg,"UTF-8"))
             raw_comet = ""
         return  raw_comet
 
@@ -1070,7 +1083,8 @@ class ComicArchive:
                         data = self.archiver.readArchiveFile( n )
                     except:
                         data = ""
-                        print >> sys.stderr, u"Error reading in Comet XML for validation!"
+                        errMsg=u"Error reading in Comet XML for validation!"
+                        sys.stderr.buffer.write(bytes(errMsg,"UTF-8"))
                     if CoMet().validateString( data ):
                         # since we found it, save it!
                         self.comet_filename = n
