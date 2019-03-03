@@ -49,9 +49,9 @@ please contact me if you need any special support or features.
 
 ## Requirements (for running from source)
 
-- Python 3.7 or later
+- Python 3.5 or later
 - Extra Python modules installed via pip (```python3 -m pip install -r requirements.txt```)
-- Optionally, pybonjour, for automatic server discovery (```python3 -m pip install pybonjour```)
+- Optionally, pybonjour, for automatic server discovery
 
 -----
 
@@ -80,3 +80,105 @@ Some tips:
 
 - Use "--help" option to list command-line options
 - Use the "--reset" option (CLI) or control page "Rebuild Database" to wipe the database if you're having problems.
+
+## Using venv
+
+### Prerequisites
+
+#### Debian and derivates
+
+The following packages have to be installed:
+
+- python3
+- python3-dev
+- python3-venv
+- libavahi-compat-libdnssd1
+- libjpeg-dev
+- libpng-dev
+- zlib1g-dev
+- libwebp-dev
+
+For example:
+
+```bash
+apt install python3 python3-dev python3-venv libavahi-compat-libdnssd1
+apt install libjpeg-dev libpng-dev zlib1g-dev libwebp-dev
+```
+
+#### Arch Linux
+
+The following packages have to be installed:
+
+```bash
+sudo pacman -S --needed make gcc libwebp python3 unzip wget
+```
+
+After installing and configuring ComicStreamer, the following packages can be removed:
+
+```bash
+sudo pacman -Rs gcc binutils libmpc wget gc guile libatomic_ops libtool make
+```
+
+#### MacOS
+
+The following packages have to be installed:
+
+- python3
+- jpeg
+- libpng
+- webp
+
+```bash
+brew install python jpeg libpng webp
+```
+
+### Manual Installation
+
+Create and activate venv:
+
+```bash
+python3 -m venv /opt/comicstreamer
+source /opt/comicstreamer/activate
+python3 -m pip install wheel
+```
+
+Download ComicStreamer and install with needed modules:
+
+```bash
+curl -OL https://github.com/kounch/ComicStreamer/archive/master.zip
+unzip master.zip
+mv ComicStreamer-master master
+cd master
+python3 -m pip install -r requirements.txt
+python3 -m paver libunrar
+```
+
+Optionally, install extra module:
+
+```bash
+git clone https://github.com/depl0y/pybonjour-python3.git
+cd pybonjour-python3
+python3 setup.py install
+cd ..
+rm -rf pybonjour-python3
+```
+
+### systemd service
+
+You can create a systemd service. For example, create the file ```/etc/systemd/system/comicstreamer.service```
+
+```ini
+[Unit]
+Description=ComicStreamer Service
+Requires=network.target local-fs.target remote-fs.target
+After=network.target local-fs.target remote-fs.target
+
+[Service]
+Restart=always
+RestartSec=120
+ExecStart=/opt/comicstreamer/bin/python3 /opt/comicstreamer/master/comicstreamer --nobrowser --user-dir /opt/comicstreamer/.ComicStreamer
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target
+```
