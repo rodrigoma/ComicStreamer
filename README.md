@@ -145,8 +145,10 @@ python3 -m pip install wheel
 Download ComicStreamer and install with needed modules:
 
 ```bash
+cd /opt/comicstreamer/
 curl -OL https://github.com/kounch/ComicStreamer/archive/master.zip
 unzip master.zip
+rm master.zip
 mv ComicStreamer-master master
 cd master
 python3 -m pip install -r requirements.txt
@@ -161,6 +163,11 @@ cd pybonjour-python3
 python3 setup.py install
 cd ..
 rm -rf pybonjour-python3
+```
+
+Test everything is ok, with an execution from shell:
+```bash
+/opt/comicstreamer/bin/python3 /opt/comicstreamer/master/comicstreamer --nobrowser --user-dir /opt/comicstreamer/.ComicStreamer
 ```
 
 ### systemd service
