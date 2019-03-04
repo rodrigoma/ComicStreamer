@@ -71,8 +71,8 @@ class OpenableRarFile(rarfile.RarFile):
         return b''.join(buf)
 
 
-if platform.system() == "Windows":
-    import _subprocess
+# if platform.system() == "Windows":
+#     import _subprocess
 import time
 
 from io import StringIO
@@ -298,8 +298,9 @@ class RarArchiver:
 
         # windows only, keeps the cmd.exe from popping up
         if platform.system() == "Windows":
-            self.startupinfo = subprocess.STARTUPINFO()
-            self.startupinfo.dwFlags |= _subprocess.STARTF_USESHOWWINDOW
+        #    self.startupinfo = subprocess.STARTUPINFO()
+        #    self.startupinfo.dwFlags |= _subprocess.STARTF_USESHOWWINDOW
+            self.startupinfo = None
         else:
             self.startupinfo = None
 

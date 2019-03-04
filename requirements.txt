@@ -4,7 +4,7 @@ certifi==2015.04.28
 configobj==5.0.6
 natsort==3.5.2
 pathtools==0.1.2
-Pillow==2.9.0
+Pillow==5.4.1
 PyPDF2==1.24
 python-dateutil==2.4.2
 PyYAML==3.11

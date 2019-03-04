@@ -132,7 +132,14 @@ The following packages have to be installed:
 brew install python jpeg libpng webp
 ```
 
-### Manual Installation
+#### Windows
+
+The following software has to be installed:
+
+- python 3
+- Bonjour (optional)
+
+### Manual Installation (Linux and MacOS)
 
 Create and activate venv:
 
@@ -160,11 +167,13 @@ python3 -m paver libunrar
 Optionally, install extra module:
 
 ```bash
-git clone https://github.com/depl0y/pybonjour-python3.git
-cd pybonjour-python3
+curl -OL https://github.com/kounch/pybonjour-python3/archive/master.zip
+unzip master.zip
+rm master.zip
+cd pybonjour-python3-master
 python3 setup.py install
 cd ..
-rm -rf pybonjour-python3
+rm -rf pybonjour-python3-master
 ```
 
 Test everything is ok, with an execution from shell:
@@ -173,7 +182,56 @@ Test everything is ok, with an execution from shell:
 /opt/comicstreamer/bin/python3 /opt/comicstreamer/master/comicstreamer --nobrowser --user-dir /opt/comicstreamer/.ComicStreamer
 ```
 
-### systemd service
+### Manual Installation (Windows)
+
+Launch a ```cmd``` Window, then create and activate venv:
+
+```bat
+py -3 -m venv comicstreamer
+comicstreamer\Scripts\activate.bat
+python -m pip install --upgrade pip setuptools
+python -m pip install wheel
+```
+
+Download ComicStreamer and install needed modules and libraries:
+
+```bat
+cd comicstreamer
+%windir%\explorer.exe https://github.com/kounch/ComicStreamer/archive/master.zip
+```
+
+Decompress the ZIP file inside the comicstreamer folder and rename to ```master```
+
+```bat
+cd master
+python -m pip install -r requirements.txt
+python -m paver libunrar
+```
+
+Follow the instructions to copy UnRAR DLL to ```libunrar.so```.
+
+Optionally, if you have installed Bonjour, install extra module:
+
+```bat
+%windir%\explorer.exe https://github.com/kounch/pybonjour-python3/archive/master.zip
+```
+
+Decompress the ZIP file
+
+```bat
+cd pybonjour-python3-master
+python setup.py install
+cd ..
+rm -rf pybonjour-python3-master
+```
+
+Test everything is ok, with an execution from cmd:
+
+```bat
+python comicstreamer
+```
+
+### systemd service (Linux)
 
 You can create a systemd service. For example, create the file ```/etc/systemd/system/comicstreamer.service```
 
