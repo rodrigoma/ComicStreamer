@@ -59,8 +59,7 @@ class Library:
             try:
                 image_data = comicstreamerlib.utils.resizeImage(
                     int(max_height), image_data)
-            except Exception as e:
-                #logging.error(e)
+            except:
                 pass
         return image_data
 

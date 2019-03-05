@@ -72,7 +72,6 @@ def get_recursive_filelist(pathlist):
     """
 	Get a recursive list of of all files under all path items in the list
 	"""
-    filename_encoding = sys.getfilesystemencoding()
     filelist = []
     for p in pathlist:
         # if path is a folder, walk it recursivly, and all files underneath
@@ -82,12 +81,6 @@ def get_recursive_filelist(pathlist):
                 files = [f for f in files if not f[0] == '.']
                 dirs[:] = [d for d in dirs if not d[0] == '.']
                 for f in files:
-                    #if type(f) == str:
-                    #	#make sure string is unicode
-                    #	f = f.decode(filename_encoding, 'replace')
-                    #elif type(f) != str:
-                    #	#it's probably a QString
-                    #	f = str(f)
                     filelist.append(os.path.join(root, f))
         else:
             filelist.append(p)
