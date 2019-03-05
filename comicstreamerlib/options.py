@@ -26,6 +26,7 @@ import getopt
 import platform
 import os
 import traceback
+import logging
 
 import comicstreamerlib.csversion
 
@@ -72,11 +73,11 @@ for comics to add to the database (persisted)
     def display_msg_and_quit(self, msg, code, show_help=False):
         appname = os.path.basename(sys.argv[0])
         if msg is not None:
-            print(msg)
+            logging.info(msg)
         if show_help:
-            print(self.help_text.format(appname))
+            logging.info(self.help_text.format(appname))
         else:
-            print("For more help, run with '--help'")
+            logging.info("For more help, run with '--help'")
         sys.exit(code)
 
     def parseCmdLineArgs(self):
@@ -132,9 +133,9 @@ for comics to add to the database (persisted)
             if o == "--nobrowser":
                 self.launch_browser = False
             if o == "--version":
-                print("ComicStreamer {0}:  Copyright (c) 2014 Anthony Beville".
+                logging.info("ComicStreamer {0}:  Copyright (c) 2014 Anthony Beville".
                       format(comicstreamerlib.csversion.version))
-                print(
+                logging.info(
                     "Distributed under Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)"
                 )
                 sys.exit(0)

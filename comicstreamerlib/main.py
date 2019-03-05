@@ -36,24 +36,24 @@ from comicstreamerlib.server import APIServer
 from comicstreamerlib.bonjour import BonjourThread
 #from gui import GUIThread
 
-#Configure logging
-# root level
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-
-# By default only do info level to console
-sh = logging.StreamHandler()
-sh.setLevel(logging.INFO)
-
-
 class Launcher():
     def signal_handler(self, signal, frame):
-        print("Caught Ctrl-C.  exiting.")
+        logging.info("Caught Ctrl-C or SIGTERM.  exiting.")
         if self.apiServer:
             self.apiServer.shutdown()
         sys.exit()
 
     def go(self):
+        #Configure logging
+        # root level
+        logger = logging.getLogger()
+        logger.setLevel(logging.DEBUG)
+
+        # By default only do info level to console
+        sh = logging.StreamHandler()
+        sh.setLevel(logging.INFO)
+        logger.addHandler(sh)
+
         comicstreamerlib.utils.fix_output_encoding()
         self.apiServer = None
 
@@ -67,9 +67,7 @@ class Launcher():
 
         formatter = logging.Formatter(
             '%(asctime)s - %(levelname)s - %(message)s')
-
         sh.setFormatter(formatter)
-        logger.addHandler(sh)
 
         log_file = os.path.join(AppFolders.logs(), "ComicStreamer.log")
         if not os.path.exists(os.path.dirname(log_file)):
@@ -89,6 +87,7 @@ class Launcher():
         self.apiServer.logConsoleHandler = sh
 
         signal.signal(signal.SIGINT, self.signal_handler)
+        signal.signal(signal.SIGTERM, self.signal_handler)
 
         bonjour = BonjourThread(self.apiServer.port)
         bonjour.start()

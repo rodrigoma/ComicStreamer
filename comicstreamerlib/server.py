@@ -176,7 +176,7 @@ class JSONResultAPIHandler(GenericAPIHandler):
 
         if folder_filter != "":
             folder_filter = os.path.normcase(os.path.normpath(folder_filter))
-            print(folder_filter)
+            logging.info(folder_filter)
 
         person = None
         role = None
@@ -641,7 +641,7 @@ class FolderAPIHandler(JSONResultAPIHandler):
                 path = os.path.join(folder_list[folder_idx], *arglist[1:])
                 # validate *that* folder
                 if not os.path.exists(path):
-                    print("Not exist", path, type(path))
+                    logging.error("Not exist", path, type(path))
                     raise Exception
 
                 response['current'] = path
@@ -663,7 +663,7 @@ class FolderAPIHandler(JSONResultAPIHandler):
                 response['comics']['url_path'] = comic_path
 
             except FloatingPointError as e:
-                print(e)
+                logging.error(e)
                 raise tornado.web.HTTPError(404, "Unknown folder")
 
         self.setContentType()
@@ -957,7 +957,7 @@ class ConfigPageHandler(BaseHandler):
             s.shutdown(2)
             return False
         except Exception as e:
-            print(e)
+            logging.error(e)
             return True
 
     def render_config(self, formdata, success="", failure=""):
