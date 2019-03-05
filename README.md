@@ -167,13 +167,7 @@ python3 -m paver libunrar
 Optionally, install extra module:
 
 ```bash
-curl -OL https://github.com/kounch/pybonjour-python3/archive/master.zip
-unzip master.zip
-rm master.zip
-cd pybonjour-python3-master
-python3 setup.py install
-cd ..
-rm -rf pybonjour-python3-master
+python3 -m pip install https://github.com/kounch/pybonjour-python3/releases/download/1.1.3/pybonjour-1.1.3.tar.gz
 ```
 
 Test everything is ok, with an execution from shell:
@@ -213,16 +207,7 @@ Follow the instructions to copy UnRAR DLL to ```libunrar.so```.
 Optionally, if you have installed Bonjour, install extra module:
 
 ```bat
-%windir%\explorer.exe https://github.com/kounch/pybonjour-python3/archive/master.zip
-```
-
-Decompress the ZIP file
-
-```bat
-cd pybonjour-python3-master
-python setup.py install
-cd ..
-rm -rf pybonjour-python3-master
+python -m pip install https://github.com/kounch/pybonjour-python3/releases/download/1.1.3/pybonjour-1.1.3.tar.gz
 ```
 
 Test everything is ok, with an execution from cmd:
