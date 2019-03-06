@@ -19,7 +19,6 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 """
 pyUnRAR2 is a ctypes based wrapper around the free UnRAR.dll. 
 
@@ -42,12 +41,12 @@ except NameError:
     in_windows = False
 
 if in_windows:
-    from windows import RarFileImplementation
+    from comicapi.UnRAR2.windows import RarFileImplementation
 else:
-    from unix import RarFileImplementation
-    
-    
+    from comicapi.UnRAR2.unix import RarFileImplementation
+
 import fnmatch, time, weakref
+
 
 class RarInfo(object):
     """Represents a file header in an archive. Don't instantiate directly.
@@ -74,18 +73,16 @@ class RarInfo(object):
         self.size = data['size']
         self.datetime = data['datetime']
         self.comment = data['comment']
-            
-
 
     def __str__(self):
-        try :
+        try:
             arcName = self.rarfile.archiveName
         except ReferenceError:
             arcName = "[ARCHIVE_NO_LONGER_LOADED]"
         return '<RarInfo "%s" in "%s">' % (self.filename, arcName)
 
-class RarFile(RarFileImplementation):
 
+class RarFile(RarFileImplementation):
     def __init__(self, archiveName, password=None):
         """Instantiate the archive.
 
@@ -98,8 +95,7 @@ class RarFile(RarFileImplementation):
         >>> print RarFile('test.rar').comment
         This is a test.
         """
-        self.archiveName = archiveName
-        RarFileImplementation.init(self, password)
+        RarFileImplementation.init(self, archiveName, password)
 
     def __del__(self):
         self.destruct()
@@ -138,9 +134,12 @@ class RarFile(RarFileImplementation):
         """
         checker = condition2checker(condition)
         return RarFileImplementation.read_files(self, checker)
-        
 
-    def extract(self,  condition='*', path='.', withSubpath=True, overwrite=True):
+    def extract(self,
+                condition='*',
+                path='.',
+                withSubpath=True,
+                overwrite=True):
         """Extract specific files from archive to disk.
         
         If "condition" is a list of numbers, then extract files which have those positions in infolist.
@@ -157,21 +156,26 @@ class RarFile(RarFileImplementation):
         
         Returns list of RarInfos for extracted files."""
         checker = condition2checker(condition)
-        return RarFileImplementation.extract(self, checker, path, withSubpath, overwrite)
+        return RarFileImplementation.extract(self, checker, path, withSubpath,
+                                             overwrite)
+
 
 def condition2checker(condition):
     """Converts different condition types to callback"""
-    if type(condition) in [str, unicode]:
+    if type(condition) in [str]:
+
         def smatcher(info):
             return fnmatch.fnmatch(info.filename, condition)
+
         return smatcher
-    elif type(condition) in [list, tuple] and type(condition[0]) in [int, long]:
+    elif type(condition) in [list, tuple] and type(
+            condition[0]) in [int]:
+
         def imatcher(info):
             return info.index in condition
+
         return imatcher
     elif callable(condition):
         return condition
     else:
         raise TypeError
-
-

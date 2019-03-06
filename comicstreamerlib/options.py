@@ -133,8 +133,9 @@ for comics to add to the database (persisted)
             if o == "--nobrowser":
                 self.launch_browser = False
             if o == "--version":
-                logging.info("ComicStreamer {0}:  Copyright (c) 2014 Anthony Beville".
-                      format(comicstreamerlib.csversion.version))
+                logging.info(
+                    "ComicStreamer {0}:  Copyright (c) 2014 Anthony Beville".
+                    format(comicstreamerlib.csversion.version))
                 logging.info(
                     "Distributed under Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)"
                 )

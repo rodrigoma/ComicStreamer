@@ -29,7 +29,7 @@ import os, os.path, sys
 import Queue
 import time
 
-from rar_exceptions import *
+from comicapi.UnRAR2.rar_exceptions import *
 
 ERAR_END_ARCHIVE = 10
 ERAR_NO_MEMORY = 11
@@ -61,63 +61,74 @@ UCM_CHANGEVOLUME = 0
 UCM_PROCESSDATA = 1
 UCM_NEEDPASSWORD = 2
 
-architecture_bits = ctypes.sizeof(ctypes.c_voidp)*8
+architecture_bits = ctypes.sizeof(ctypes.c_voidp) * 8
 dll_name = "unrar.dll"
 if architecture_bits == 64:
     dll_name = "x64\\unrar64.dll"
-    
-    
+
 try:
-    unrar = ctypes.WinDLL(os.path.join(os.path.split(__file__)[0], 'UnRARDLL', dll_name))
+    unrar = ctypes.WinDLL(
+        os.path.join(os.path.split(__file__)[0], 'UnRARDLL', dll_name))
 except WindowsError:
     unrar = ctypes.WinDLL(dll_name)
 
 
 class RAROpenArchiveDataEx(ctypes.Structure):
     def __init__(self, ArcName=None, ArcNameW=u'', OpenMode=RAR_OM_LIST):
-        self.CmtBuf = ctypes.c_buffer(64*1024)
-        ctypes.Structure.__init__(self, ArcName=ArcName, ArcNameW=ArcNameW, OpenMode=OpenMode, _CmtBuf=ctypes.addressof(self.CmtBuf), CmtBufSize=ctypes.sizeof(self.CmtBuf))
+        self.CmtBuf = ctypes.c_buffer(64 * 1024)
+        ctypes.Structure.__init__(
+            self,
+            ArcName=ArcName,
+            ArcNameW=ArcNameW,
+            OpenMode=OpenMode,
+            _CmtBuf=ctypes.addressof(self.CmtBuf),
+            CmtBufSize=ctypes.sizeof(self.CmtBuf))
 
     _fields_ = [
-                ('ArcName', ctypes.c_char_p),
-                ('ArcNameW', ctypes.c_wchar_p),
-                ('OpenMode', ctypes.c_uint),
-                ('OpenResult', ctypes.c_uint),
-                ('_CmtBuf', ctypes.c_voidp),
-                ('CmtBufSize', ctypes.c_uint),
-                ('CmtSize', ctypes.c_uint),
-                ('CmtState', ctypes.c_uint),
-                ('Flags', ctypes.c_uint),
-                ('Reserved', ctypes.c_uint*32),
-               ]
+        ('ArcName', ctypes.c_char_p),
+        ('ArcNameW', ctypes.c_wchar_p),
+        ('OpenMode', ctypes.c_uint),
+        ('OpenResult', ctypes.c_uint),
+        ('_CmtBuf', ctypes.c_voidp),
+        ('CmtBufSize', ctypes.c_uint),
+        ('CmtSize', ctypes.c_uint),
+        ('CmtState', ctypes.c_uint),
+        ('Flags', ctypes.c_uint),
+        ('Reserved', ctypes.c_uint * 32),
+    ]
+
 
 class RARHeaderDataEx(ctypes.Structure):
     def __init__(self):
-        self.CmtBuf = ctypes.c_buffer(64*1024)
-        ctypes.Structure.__init__(self, _CmtBuf=ctypes.addressof(self.CmtBuf), CmtBufSize=ctypes.sizeof(self.CmtBuf))
+        self.CmtBuf = ctypes.c_buffer(64 * 1024)
+        ctypes.Structure.__init__(
+            self,
+            _CmtBuf=ctypes.addressof(self.CmtBuf),
+            CmtBufSize=ctypes.sizeof(self.CmtBuf))
 
     _fields_ = [
-                ('ArcName', ctypes.c_char*1024),
-                ('ArcNameW', ctypes.c_wchar*1024),
-                ('FileName', ctypes.c_char*1024),
-                ('FileNameW', ctypes.c_wchar*1024),
-                ('Flags', ctypes.c_uint),
-                ('PackSize', ctypes.c_uint),
-                ('PackSizeHigh', ctypes.c_uint),
-                ('UnpSize', ctypes.c_uint),
-                ('UnpSizeHigh', ctypes.c_uint),
-                ('HostOS', ctypes.c_uint),
-                ('FileCRC', ctypes.c_uint),
-                ('FileTime', ctypes.c_uint),
-                ('UnpVer', ctypes.c_uint),
-                ('Method', ctypes.c_uint),
-                ('FileAttr', ctypes.c_uint),
-                ('_CmtBuf', ctypes.c_voidp),
-                ('CmtBufSize', ctypes.c_uint),
-                ('CmtSize', ctypes.c_uint),
-                ('CmtState', ctypes.c_uint),
-                ('Reserved', ctypes.c_uint*1024),
-               ]
+        ('ArcName', ctypes.c_char * 1024),
+        ('ArcNameW', ctypes.c_wchar * 1024),
+        ('FileName', ctypes.c_char * 1024),
+        ('FileNameW', ctypes.c_wchar * 1024),
+        ('Flags', ctypes.c_uint),
+        ('PackSize', ctypes.c_uint),
+        ('PackSizeHigh', ctypes.c_uint),
+        ('UnpSize', ctypes.c_uint),
+        ('UnpSizeHigh', ctypes.c_uint),
+        ('HostOS', ctypes.c_uint),
+        ('FileCRC', ctypes.c_uint),
+        ('FileTime', ctypes.c_uint),
+        ('UnpVer', ctypes.c_uint),
+        ('Method', ctypes.c_uint),
+        ('FileAttr', ctypes.c_uint),
+        ('_CmtBuf', ctypes.c_voidp),
+        ('CmtBufSize', ctypes.c_uint),
+        ('CmtSize', ctypes.c_uint),
+        ('CmtState', ctypes.c_uint),
+        ('Reserved', ctypes.c_uint * 1024),
+    ]
+
 
 def DosDateTimeToTimeTuple(dosDateTime):
     """Convert an MS-DOS format date time to a Python time tuple.
@@ -127,10 +138,12 @@ def DosDateTimeToTimeTuple(dosDateTime):
     day = dosDate & 0x1f
     month = (dosDate >> 5) & 0xf
     year = 1980 + (dosDate >> 9)
-    second = 2*(dosTime & 0x1f)
+    second = 2 * (dosTime & 0x1f)
     minute = (dosTime >> 5) & 0x3f
     hour = dosTime >> 11
-    return time.localtime(time.mktime((year, month, day, hour, minute, second, 0, 1, -1)))
+    return time.localtime(
+        time.mktime((year, month, day, hour, minute, second, 0, 1, -1)))
+
 
 def _wrap(restype, function, argtypes):
     result = function
@@ -138,80 +151,98 @@ def _wrap(restype, function, argtypes):
     result.restype = restype
     return result
 
+
 RARGetDllVersion = _wrap(ctypes.c_int, unrar.RARGetDllVersion, [])
 
-RAROpenArchiveEx = _wrap(ctypes.wintypes.HANDLE, unrar.RAROpenArchiveEx, [ctypes.POINTER(RAROpenArchiveDataEx)])
+RAROpenArchiveEx = _wrap(ctypes.wintypes.HANDLE, unrar.RAROpenArchiveEx,
+                         [ctypes.POINTER(RAROpenArchiveDataEx)])
 
-RARReadHeaderEx = _wrap(ctypes.c_int, unrar.RARReadHeaderEx, [ctypes.wintypes.HANDLE, ctypes.POINTER(RARHeaderDataEx)])
+RARReadHeaderEx = _wrap(
+    ctypes.c_int, unrar.RARReadHeaderEx,
+    [ctypes.wintypes.HANDLE,
+     ctypes.POINTER(RARHeaderDataEx)])
 
-_RARSetPassword = _wrap(ctypes.c_int, unrar.RARSetPassword, [ctypes.wintypes.HANDLE, ctypes.c_char_p])
+_RARSetPassword = _wrap(ctypes.c_int, unrar.RARSetPassword,
+                        [ctypes.wintypes.HANDLE, ctypes.c_char_p])
+
+
 def RARSetPassword(*args, **kwargs):
     _RARSetPassword(*args, **kwargs)
 
-RARProcessFile = _wrap(ctypes.c_int, unrar.RARProcessFile, [ctypes.wintypes.HANDLE, ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p])
 
-RARCloseArchive = _wrap(ctypes.c_int, unrar.RARCloseArchive, [ctypes.wintypes.HANDLE])
+RARProcessFile = _wrap(
+    ctypes.c_int, unrar.RARProcessFile,
+    [ctypes.wintypes.HANDLE, ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p])
 
-UNRARCALLBACK = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_uint, ctypes.c_long, ctypes.c_long, ctypes.c_long)
-RARSetCallback = _wrap(ctypes.c_int, unrar.RARSetCallback, [ctypes.wintypes.HANDLE, UNRARCALLBACK, ctypes.c_long])
+RARCloseArchive = _wrap(ctypes.c_int, unrar.RARCloseArchive,
+                        [ctypes.wintypes.HANDLE])
 
-
+UNRARCALLBACK = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_uint, ctypes.c_long,
+                                   ctypes.c_long, ctypes.c_long)
+RARSetCallback = _wrap(ctypes.c_int, unrar.RARSetCallback,
+                       [ctypes.wintypes.HANDLE, UNRARCALLBACK, ctypes.c_long])
 
 RARExceptions = {
-                 ERAR_NO_MEMORY : MemoryError,
-                 ERAR_BAD_DATA : ArchiveHeaderBroken,
-                 ERAR_BAD_ARCHIVE : InvalidRARArchive,
-                 ERAR_EOPEN : FileOpenError,
-                }
+    ERAR_NO_MEMORY: MemoryError,
+    ERAR_BAD_DATA: ArchiveHeaderBroken,
+    ERAR_BAD_ARCHIVE: InvalidRARArchive,
+    ERAR_EOPEN: FileOpenError,
+}
+
 
 class PassiveReader:
     """Used for reading files to memory"""
-    def __init__(self, usercallback = None):
+
+    def __init__(self, usercallback=None):
         self.buf = []
         self.ucb = usercallback
-    
+
     def _callback(self, msg, UserData, P1, P2):
         if msg == UCM_PROCESSDATA:
-            data = (ctypes.c_char*P2).from_address(P1).raw
-            if self.ucb!=None:
+            data = (ctypes.c_char * P2).from_address(P1).raw
+            if self.ucb != None:
                 self.ucb(data)
             else:
                 self.buf.append(data)
         return 1
-    
+
     def get_result(self):
         return ''.join(self.buf)
+
 
 class RarInfoIterator(object):
     def __init__(self, arc):
         self.arc = arc
         self.index = 0
         self.headerData = RARHeaderDataEx()
-        self.res = RARReadHeaderEx(self.arc._handle, ctypes.byref(self.headerData))
-        if self.res==ERAR_BAD_DATA:
+        self.res = RARReadHeaderEx(self.arc._handle,
+                                   ctypes.byref(self.headerData))
+        if self.res == ERAR_BAD_DATA:
             raise IncorrectRARPassword
         self.arc.lockStatus = "locked"
         self.arc.needskip = False
-        
+
     def __iter__(self):
         return self
-        
+
     def next(self):
-        if self.index>0:
+        if self.index > 0:
             if self.arc.needskip:
                 RARProcessFile(self.arc._handle, RAR_SKIP, None, None)
-            self.res = RARReadHeaderEx(self.arc._handle, ctypes.byref(self.headerData))
+            self.res = RARReadHeaderEx(self.arc._handle,
+                                       ctypes.byref(self.headerData))
 
         if self.res:
-            raise StopIteration 
+            raise StopIteration
         self.arc.needskip = True
-        
+
         data = {}
         data['index'] = self.index
         data['filename'] = self.headerData.FileName
         data['datetime'] = DosDateTimeToTimeTuple(self.headerData.FileTime)
         data['isdir'] = ((self.headerData.Flags & 0xE0) == 0xE0)
-        data['size'] = self.headerData.UnpSize + (self.headerData.UnpSizeHigh << 32)
+        data['size'] = self.headerData.UnpSize + (
+            self.headerData.UnpSizeHigh << 32)
         if self.headerData.CmtState == 1:
             data['comment'] = self.headerData.CmtBuf.value
         else:
@@ -219,24 +250,28 @@ class RarInfoIterator(object):
         self.index += 1
         return data
 
-            
     def __del__(self):
         self.arc.lockStatus = "finished"
 
+
 def generate_password_provider(password):
     def password_provider_callback(msg, UserData, P1, P2):
-        if msg == UCM_NEEDPASSWORD and password!=None:
-            (ctypes.c_char*P2).from_address(P1).value = password
+        if msg == UCM_NEEDPASSWORD and password != None:
+            (ctypes.c_char * P2).from_address(P1).value = password
         return 1
+
     return password_provider_callback
 
-class RarFileImplementation(object):
 
-    def init(self, password=None):
+class RarFileImplementation(object):
+    def init(self, archiveName = '', password=None):
+        self.archiveName = archiveName
         self.password = password
-        archiveData = RAROpenArchiveDataEx(ArcNameW=self.archiveName, OpenMode=RAR_OM_EXTRACT)
+        archiveData = RAROpenArchiveDataEx(
+            ArcNameW=self.archiveName, OpenMode=RAR_OM_EXTRACT)
         self._handle = RAROpenArchiveEx(ctypes.byref(archiveData))
-        self.c_callback = UNRARCALLBACK(generate_password_provider(self.password))
+        self.c_callback = UNRARCALLBACK(
+            generate_password_provider(self.password))
         RARSetCallback(self._handle, self.c_callback, 1)
 
         if archiveData.OpenResult != 0:
@@ -249,10 +284,8 @@ class RarFileImplementation(object):
 
         if password:
             RARSetPassword(self._handle, password)
-            
-        self.lockStatus = "ready"
-            
 
+        self.lockStatus = "ready"
 
     def destruct(self):
         if self._handle and RARCloseArchive:
@@ -260,7 +293,8 @@ class RarFileImplementation(object):
 
     def make_sure_ready(self):
         if self.lockStatus == "locked":
-            raise InvalidRARArchiveUsage("cannot execute infoiter() without finishing previous one")
+            raise InvalidRARArchiveUsage(
+                "cannot execute infoiter() without finishing previous one")
         if self.lockStatus == "finished":
             self.destruct()
             self.init(self.password)
@@ -277,33 +311,32 @@ class RarFileImplementation(object):
                 c_callback = UNRARCALLBACK(reader._callback)
                 RARSetCallback(self._handle, c_callback, 1)
                 tmpres = RARProcessFile(self._handle, RAR_TEST, None, None)
-                if tmpres==ERAR_BAD_DATA:
+                if tmpres == ERAR_BAD_DATA:
                     raise IncorrectRARPassword
                 self.needskip = False
                 res.append((info, reader.get_result()))
         return res
-        
 
-    def extract(self,  checker, path, withSubpath, overwrite):
+    def extract(self, checker, path, withSubpath, overwrite):
         res = []
         for info in self.infoiter():
             checkres = checker(info)
-            if checkres!=False and not info.isdir:
-                if checkres==True:
+            if checkres != False and not info.isdir:
+                if checkres == True:
                     fn = info.filename
                     if not withSubpath:
                         fn = os.path.split(fn)[-1]
                     target = os.path.join(path, fn)
                 else:
-                    raise DeprecationWarning, "Condition callbacks returning strings are deprecated and only supported in Windows"                    
                     target = checkres
+                    raise DeprecationWarning("Condition callbacks returning strings are deprecated and only supported in Windows")
+
                 if overwrite or (not os.path.exists(target)):
-                    tmpres = RARProcessFile(self._handle, RAR_EXTRACT, None, target)
-                    if tmpres==ERAR_BAD_DATA:
+                    tmpres = RARProcessFile(self._handle, RAR_EXTRACT, None,
+                                            target)
+                    if tmpres == ERAR_BAD_DATA:
                         raise IncorrectRARPassword
 
                 self.needskip = False
                 res.append(info)
         return res
-
-

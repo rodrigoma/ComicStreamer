@@ -34,7 +34,9 @@ from comicstreamerlib.folders import AppFolders
 from comicstreamerlib.options import Options
 from comicstreamerlib.server import APIServer
 from comicstreamerlib.bonjour import BonjourThread
+
 #from gui import GUIThread
+
 
 class Launcher():
     def signal_handler(self, signal, frame):

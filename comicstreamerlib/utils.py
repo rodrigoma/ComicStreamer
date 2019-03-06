@@ -167,8 +167,7 @@ def resize(img, box, out, fit=False):
 
     #preresize image with factor 2, 4, 8 and fast algorithm
     factor = 1
-    while img.size[0] / factor > 2 * box[0] and img.size[
-            1] * 2 / factor > 2 * box[1]:
+    while img.size[0] / factor > 2 * box[0] and img.size[1] * 2 / factor > 2 * box[1]:
         factor *= 2
     if factor > 1:
         img.thumbnail((img.size[0] / factor, img.size[1] / factor),

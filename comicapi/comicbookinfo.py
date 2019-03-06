@@ -1,8 +1,6 @@
 """
 A python class to encapsulate the ComicBookInfo data 
-"""
 
-"""
 Copyright 2012-2014  Anthony Beville
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,135 +16,135 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-
 import json
 from datetime import datetime
 import zipfile
 
 from comicapi.genericmetadata import GenericMetadata
 import comicapi.utils
+
 #import ctversion
 
+
 class ComicBookInfo:
-		 
+    def metadataFromString(self, string):
 
-	def metadataFromString( self, string ):
-	
-		cbi_container = json.loads( str(string, 'utf-8') )
+        cbi_container = json.loads(str(string, 'utf-8'))
 
-		metadata = GenericMetadata()
+        metadata = GenericMetadata()
 
-		cbi = cbi_container[ 'ComicBookInfo/1.0' ]
+        cbi = cbi_container['ComicBookInfo/1.0']
 
-		#helper func 
-		# If item is not in CBI, return None
-		def xlate( cbi_entry):
-			if cbi_entry in cbi:
-				return cbi[cbi_entry] 
-			else:	
-				return None 
-		
-		metadata.series =            xlate( 'series' )
-		metadata.title =             xlate( 'title' )
-		metadata.issue =             xlate( 'issue' )
-		metadata.publisher =         xlate( 'publisher' )
-		metadata.month =             xlate( 'publicationMonth' )
-		metadata.year =              xlate( 'publicationYear' )
-		metadata.issueCount =        xlate( 'numberOfIssues' )
-		metadata.comments =          xlate( 'comments' )
-		metadata.credits =           xlate( 'credits' )
-		metadata.genre =             xlate( 'genre' )
-		metadata.volume =            xlate( 'volume' )
-		metadata.volumeCount =       xlate( 'numberOfVolumes' )
-		metadata.language =          xlate( 'language' )
-		metadata.country =           xlate( 'country' )
-		metadata.criticalRating =    xlate( 'rating' )
-		metadata.tags =              xlate( 'tags' )
-		
-		# make sure credits and tags are at least empty lists and not None
-		if metadata.credits is None:
-			metadata.credits = []
-		if metadata.tags is None:
-			metadata.tags = []
-			
-		#need to massage the language string to be ISO
-		if metadata.language is not None:
-			# reverse look-up
-			pattern = metadata.language
-			metadata.language = None
-			for key in comicapi.utils.getLanguageDict():
-				if comicapi.utils.getLanguageDict()[ key ] == pattern.encode('utf-8'):
-					metadata.language = key
-					break
-		
-		metadata.isEmpty = False
-		
-		return metadata
+        #helper func
+        # If item is not in CBI, return None
+        def xlate(cbi_entry):
+            if cbi_entry in cbi:
+                return cbi[cbi_entry]
+            else:
+                return None
 
-	def stringFromMetadata( self, metadata ):
+        metadata.series = xlate('series')
+        metadata.title = xlate('title')
+        metadata.issue = xlate('issue')
+        metadata.publisher = xlate('publisher')
+        metadata.month = xlate('publicationMonth')
+        metadata.year = xlate('publicationYear')
+        metadata.issueCount = xlate('numberOfIssues')
+        metadata.comments = xlate('comments')
+        metadata.credits = xlate('credits')
+        metadata.genre = xlate('genre')
+        metadata.volume = xlate('volume')
+        metadata.volumeCount = xlate('numberOfVolumes')
+        metadata.language = xlate('language')
+        metadata.country = xlate('country')
+        metadata.criticalRating = xlate('rating')
+        metadata.tags = xlate('tags')
 
-		cbi_container = self.createJSONDictionary( metadata )
-		return json.dumps( cbi_container )
-	
-	#verify that the string actually contains CBI data in JSON format
-	def validateString( self, string ):
-		
-		try:
-			cbi_container = json.loads( string )
-		except:
-			return False
-			
-		return ( 'ComicBookInfo/1.0' in cbi_container )
+        # make sure credits and tags are at least empty lists and not None
+        if metadata.credits is None:
+            metadata.credits = []
+        if metadata.tags is None:
+            metadata.tags = []
 
+        #need to massage the language string to be ISO
+        if metadata.language is not None:
+            # reverse look-up
+            pattern = metadata.language
+            metadata.language = None
+            for key in comicapi.utils.getLanguageDict():
+                if comicapi.utils.getLanguageDict()[key] == pattern.encode(
+                        'utf-8'):
+                    metadata.language = key
+                    break
 
-	def createJSONDictionary( self, metadata ):
-		
-		# Create the dictionary that we will convert to JSON text
-		cbi = dict()
-		cbi_container = {'appID' : 'ComicTagger/' + '1.0.0', #ctversion.version, 
-		                 'lastModified' : str(datetime.now()), 
-		                 'ComicBookInfo/1.0' : cbi }
-		
-		#helper func
-		def assign( cbi_entry, md_entry):
-			if md_entry is not None:
-				cbi[cbi_entry] = md_entry
-			
-		#helper func
-		def toInt(s):
-			i = None
-			if type(s) in [ str, int ]:
-				try:
-					i = int(s)
-				except ValueError:
-					pass
-			return i
-				
-		assign( 'series', metadata.series )
-		assign( 'title', metadata.title )
-		assign( 'issue', metadata.issue )
-		assign( 'publisher', metadata.publisher )
-		assign( 'publicationMonth', toInt(metadata.month) )
-		assign( 'publicationYear', toInt(metadata.year) )
-		assign( 'numberOfIssues', toInt(metadata.issueCount) )
-		assign( 'comments', metadata.comments )
-		assign( 'genre', metadata.genre )
-		assign( 'volume', toInt(metadata.volume) )
-		assign( 'numberOfVolumes', toInt(metadata.volumeCount) )
-		assign( 'language', comicapi.utils.getLanguageFromISO(metadata.language) )
-		assign( 'country', metadata.country )
-		assign( 'rating', metadata.criticalRating )
-		assign( 'credits', metadata.credits )
-		assign( 'tags', metadata.tags )
-		
-		return cbi_container
-	
+        metadata.isEmpty = False
 
-	def writeToExternalFile( self, filename,  metadata ):
+        return metadata
 
-		cbi_container = self.createJSONDictionary(metadata)
+    def stringFromMetadata(self, metadata):
 
-		f = open(filename, 'w')
-		f.write(json.dumps(cbi_container, indent=4))
-		f.close
+        cbi_container = self.createJSONDictionary(metadata)
+        return json.dumps(cbi_container)
 
+    #verify that the string actually contains CBI data in JSON format
+    def validateString(self, string):
+
+        try:
+            cbi_container = json.loads(string)
+        except:
+            return False
+
+        return ('ComicBookInfo/1.0' in cbi_container)
+
+    def createJSONDictionary(self, metadata):
+
+        # Create the dictionary that we will convert to JSON text
+        cbi = dict()
+        cbi_container = {
+            'appID': 'ComicTagger/' + '1.0.0',  #ctversion.version, 
+            'lastModified': str(datetime.now()),
+            'ComicBookInfo/1.0': cbi
+        }
+
+        #helper func
+        def assign(cbi_entry, md_entry):
+            if md_entry is not None:
+                cbi[cbi_entry] = md_entry
+
+        #helper func
+        def toInt(s):
+            i = None
+            if type(s) in [str, int]:
+                try:
+                    i = int(s)
+                except ValueError:
+                    pass
+            return i
+
+        assign('series', metadata.series)
+        assign('title', metadata.title)
+        assign('issue', metadata.issue)
+        assign('publisher', metadata.publisher)
+        assign('publicationMonth', toInt(metadata.month))
+        assign('publicationYear', toInt(metadata.year))
+        assign('numberOfIssues', toInt(metadata.issueCount))
+        assign('comments', metadata.comments)
+        assign('genre', metadata.genre)
+        assign('volume', toInt(metadata.volume))
+        assign('numberOfVolumes', toInt(metadata.volumeCount))
+        assign('language', comicapi.utils.getLanguageFromISO(
+            metadata.language))
+        assign('country', metadata.country)
+        assign('rating', metadata.criticalRating)
+        assign('credits', metadata.credits)
+        assign('tags', metadata.tags)
+
+        return cbi_container
+
+    def writeToExternalFile(self, filename, metadata):
+
+        cbi_container = self.createJSONDictionary(metadata)
+
+        f = open(filename, 'w')
+        f.write(json.dumps(cbi_container, indent=4))
+        f.close

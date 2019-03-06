@@ -262,9 +262,8 @@ class Monitor():
         if len(to_remove) > 0:
             self.library.deleteComics(to_remove)
 
-        self.setStatusDetail(
-            u"Monitor: {0} new files to scan...".format(len(filelist)),
-            logging.INFO)
+        self.setStatusDetail(u"Monitor: {0} new files to scan...".format(
+            len(filelist)), logging.INFO)
 
         md_list = []
         self.read_count = 0
@@ -311,7 +310,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) < 2:
         errMsg = u"usage:  {0} comic_folder ".format(sys.argv[0])
-        sys.stderr.buffer.write(bytes(errMsg,"UTF-8"))
+        sys.stderr.buffer.write(bytes(errMsg, "UTF-8"))
         sys.exit(-1)
 
     comicstreamerlib.utils.fix_output_encoding()

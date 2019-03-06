@@ -104,34 +104,38 @@ def alchemy_encoder():
 
 
 # Junction table
-comics_characters_table = Table(
-    'comics_characters', Base.metadata,
-    Column('comic_id', Integer, ForeignKey('comics.id')),
-    Column('character_id', Integer, ForeignKey('characters.id')))
+comics_characters_table = Table('comics_characters', Base.metadata,
+                                Column('comic_id', Integer,
+                                       ForeignKey('comics.id')),
+                                Column('character_id', Integer,
+                                       ForeignKey('characters.id')))
 
 # Junction table
-comics_teams_table = Table(
-    'comics_teams', Base.metadata,
-    Column('comic_id', Integer, ForeignKey('comics.id')),
-    Column('team_id', Integer, ForeignKey('teams.id')))
+comics_teams_table = Table('comics_teams', Base.metadata,
+                           Column('comic_id', Integer,
+                                  ForeignKey('comics.id')),
+                           Column('team_id', Integer, ForeignKey('teams.id')))
 
 # Junction table
-comics_locations_table = Table(
-    'comics_locations', Base.metadata,
-    Column('comic_id', Integer, ForeignKey('comics.id')),
-    Column('location_id', Integer, ForeignKey('locations.id')))
+comics_locations_table = Table('comics_locations', Base.metadata,
+                               Column('comic_id', Integer,
+                                      ForeignKey('comics.id')),
+                               Column('location_id', Integer,
+                                      ForeignKey('locations.id')))
 
 # Junction table
-comics_storyarcs_table = Table(
-    'comics_storyarcs', Base.metadata,
-    Column('comic_id', Integer, ForeignKey('comics.id')),
-    Column('storyarc_id', Integer, ForeignKey('storyarcs.id')))
+comics_storyarcs_table = Table('comics_storyarcs', Base.metadata,
+                               Column('comic_id', Integer,
+                                      ForeignKey('comics.id')),
+                               Column('storyarc_id', Integer,
+                                      ForeignKey('storyarcs.id')))
 
 # Junction table
-comics_generictags_table = Table(
-    'comics_generictags', Base.metadata,
-    Column('comic_id', Integer, ForeignKey('comics.id')),
-    Column('generictags_id', Integer, ForeignKey('generictags.id')))
+comics_generictags_table = Table('comics_generictags', Base.metadata,
+                                 Column('comic_id', Integer,
+                                        ForeignKey('comics.id')),
+                                 Column('generictags_id', Integer,
+                                        ForeignKey('generictags.id')))
 
 # Junction table
 comics_genres_table = Table(
