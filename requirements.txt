@@ -4,13 +4,13 @@ certifi==2015.04.28
 configobj==5.0.6
 natsort==3.5.2
 pathtools==0.1.2
-Pillow==5.4.1
+Pillow==6.2.0
 PyPDF2==1.24
 python-dateutil==2.4.2
-PyYAML==3.11
+PyYAML==4.2b1
 six==1.9.0
-SQLAlchemy==1.0.8
-tornado==4.2.1
+SQLAlchemy==1.2.18
+tornado==5.1.0
 unrar==0.3
 watchdog==0.8.3
 paver==1.2.4
