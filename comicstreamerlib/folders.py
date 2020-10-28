@@ -22,14 +22,13 @@ limitations under the License.
 """
 
 import os
-import sys
 import platform
-import logging
+import sys
 
 from comicstreamerlib.options import Options
 
 
-class AppFolders():
+class AppFolders:
     @staticmethod
     def makeFolders():
         def make(folder):

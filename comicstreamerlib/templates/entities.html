@@ -1,128 +1,120 @@
 <!DOCTYPE html>
 {% set title = "ComicStreamer: Entities" %}
 <html>
-    <head>
-        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-        <link rel="icon" href="{{handler.webroot}}/favicon_blindpet.ico" />
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <link rel="icon" href="{{ handler.webroot }}/favicon_blindpet.ico"/>
 
-		{% include head_links.html %}
+    {% include head_links.html %}
 
-        <title>{{title}}</title>
+    <title>{{ title }}</title>
 
-        <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
 
-        <style type="text/css">
-            @import "{{ static_url('comicstreamer.css') }}";
-        </style>
-        <script type="text/javascript" language="javascript">
-            var nokey_args = '{{args}}';
+    <style type="text/css">
+        @import "{{ static_url('comicstreamer.css') }}";
+    </style>
+    <script type="text/javascript" language="javascript">
+        var nokey_args = '{{args}}';
 
-            args = nokey_args  + '?&api_key={{api_key}}'
-            var url = '{{handler.webroot}}/entities/' + args;
-            var nokey_url = '{{handler.webroot}}/entities/' + nokey_args;
-            var items = [];
+        args = nokey_args + '?&api_key={{api_key}}'
+        var url = '{{handler.webroot}}/entities' + args;
+        var nokey_url = '{{handler.webroot}}/entities/' + nokey_args;
+        var items = [];
 
-            var wordList = nokey_args.split('/');
-            var lastWord = wordList[wordList.length - 1];
+        var wordList = nokey_args.split('/');
+        var lastWord = wordList[wordList.length - 1];
 
-            function entity_list_pusher( key, val )
-            {
-                //items.push( "<li id='" + key + "'>" + val + "</li>" );
-                if (!(val.count == 0  || (val.count == 1 && val.name != "comics")))
-                {
-                    items.push( "<li><a href=\"" + document.URL +"/" + val.name + "\">" + val.name + " (" + val.count +")</a></li>" );
+        function entity_list_pusher(key, val) {
+            //items.push( "<li id='" + key + "'>" + val + "</li>" );
+            if (!(val.count == 0 || (val.count == 1 && val.name != "comics"))) {
+
+                if (document.URL.endsWith('/')) {
+                    items.push("<li><a href=\"" + document.URL + val.name + "\">" + val.name + " (" + val.count + ")</a></li>");
+                } else {
+                    items.push("<li><a href=\"" + document.URL + "/" + val.name + "\">" + val.name + " (" + val.count + ")</a></li>");
                 }
             }
+        }
 
-            function value_list_pusher( key, val )
-            {
-                //items.push( "<li id='" + key + "'>" + val + "</li>" );
-                items.push( "<li><a href=\"" + document.URL +"/" + val + "\">" + val+"</a></li>" );
+        function value_list_pusher(key, val) {
+            //items.push( "<li id='" + key + "'>" + val + "</li>" );
+            if (document.URL.endsWith('/')) {
+                items.push("<li><a href=\"" + document.URL + val + "\">" + val + "</a></li>");
+            } else {
+                items.push("<li><a href=\"" + document.URL + "/" + val + "\">" + val + "</a></li>");
+
             }
+        }
 
-            function processEntityList(data)
-            {
-                entity_name = Object.keys(data)[0]
+        function processEntityList(data) {
+            entity_name = Object.keys(data)[0]
+            entity_list = data[entity_name];
 
-                entity_list = data[entity_name];
+            // build the bread crumbs header
+            path_items = nokey_args.split("/").filter(Boolean);
+            path_str = ""
+            if (path_items.length != 0) {
+                parent = nokey_args.split("/").slice(0, -1).join("/");
+                items.push("<li><a href=\"{{handler.webroot}}/entities/browse" + parent + "\">[back]</a></li>");
+                str = data.current;
 
-                // build the bread crumbs header
-                path_items = nokey_args.split("/").filter(Boolean);
-                path_str = ""
-                if (path_items.length != 0)
-                {
-                    parent = nokey_args.split("/").slice(0,-1).join("/");
-                    items.push( "<li><a href=\"{{handler.webroot}}/entities/browse" + parent + "\">[back]</a></li>" );
-                    str = data.current;
-
-                    for (i = 0; i < path_items.length; i+=2)
-                    {
-                        item_str = ' /';
-                        key = path_items[i];
-                        if (i + 1 < path_items.length)
-                        {
-                            item_str += key + '=' + path_items[i+1];
-                        }
-                        else
-                        {
-                            item_str += key;
-                        }
-                        path_str += item_str;
+                for (i = 0; i < path_items.length; i += 2) {
+                    item_str = ' /';
+                    key = path_items[i];
+                    if (i + 1 < path_items.length) {
+                        item_str += key + '=' + path_items[i + 1];
+                    } else {
+                        item_str += key;
                     }
+                    path_str += item_str;
                 }
-                else
-                {
-                    path_str = ' /';
-                }
-                $("#current").html(path_str);
+            } else {
+                path_str = ' /';
+            }
+            $("#current").html(path_str);
 
-                // now do the list
-                if (entity_name == "entities")
-                {
-                    $.each( entity_list, entity_list_pusher);
-                }
-                else
-                {
-                    $.each( entity_list, value_list_pusher);
-                }
-
-                items_div = document.getElementById("items");
-                $( "<ul/>", {
-                  "class": "my-new-list",
-                  html: items.join( "" )
-                }).appendTo( items_div );
+            // now do the list
+            if (entity_name == "entities") {
+                $.each(entity_list, entity_list_pusher);
+            } else {
+                $.each(entity_list, value_list_pusher);
             }
 
-            //console.log(lastWord);
-            if (lastWord == 'comics')
-            {
-                // redirect to the comic browser page
-                window.location = "{{handler.webroot}}/comiclist/browse?entity_src="+nokey_url
-                //$.getJSON( url, processComicResults);
-            }
-            else
-            {
-                $.getJSON( url, processEntityList);
-            }
-        </script>
+            items_div = document.getElementById("items");
+            $("<ul/>", {
+                "class": "my-new-list",
+                html: items.join("")
+            }).appendTo(items_div);
+        }
+
+        //console.log(lastWord);
+        if (lastWord == 'comics') {
+            // redirect to the comic browser page
+            window.location = "{{handler.webroot}}/comiclist/browse?entity_src=" + nokey_url
+            //$.getJSON( url, processComicResults);
+        } else {
+            $.getJSON(url, processEntityList);
+        }
+    </script>
 
 
-   </head>
-    <body>
-        <div id="header">
-            {% include header.html %}
-        </div>
+</head>
+<body>
+<div id="header">
+    {% include header.html %}
+</div>
 
-        <div id=content>
-            <div id="current" class="browser_current">
-            </div>
-            <div id="items" class="browser_list">
-            </div>
-        </div>
+<div id=content>
+    <div id="current" class="browser_current">
+    </div>
+    <div id="items" class="browser_list">
+    </div>
+</div>
 
-        <div id=navigation>
-            {% include menu.html %}
-        </div>
-     </body>
+<div id=navigation>
+    {% include menu.html %}
+</div>
+</body>
 </html>
 

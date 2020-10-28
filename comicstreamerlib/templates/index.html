@@ -124,7 +124,7 @@
                 <div class="cover_list">
                 <ul>
                     {% for comic in recently_read %}
-                        {% block comic %}
+                        {% block comic2 %}
                             <li>
                                 <a href="{{handler.webroot}}/comic/{{comic.id}}/reader" target="_blank">
                                    <img src="{{handler.webroot}}/comic/{{comic.id}}/thumbnail?api_key={{api_key}}">

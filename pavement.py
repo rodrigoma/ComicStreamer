@@ -36,7 +36,7 @@ def libunrar():
     else:
         if not os.path.exists("libunrar/unrar"):
             print("Unpacking " + dest + "...")
-            sh("tar xfz %s -C libunrar" % (dest))
+            sh("tar xfz %s -C libunrar" % dest)
         print("Compiling unrar...")
         sh("cd libunrar/unrar && make lib")
         sh("cp libunrar/unrar/libunrar.so libunrar/libunrar.so")

@@ -200,7 +200,7 @@ class PassiveReader:
     def _callback(self, msg, UserData, P1, P2):
         if msg == UCM_PROCESSDATA:
             data = (ctypes.c_char * P2).from_address(P1).raw
-            if self.ucb != None:
+            if self.ucb is not None:
                 self.ucb(data)
             else:
                 self.buf.append(data)
@@ -236,13 +236,10 @@ class RarInfoIterator(object):
             raise StopIteration
         self.arc.needskip = True
 
-        data = {}
-        data['index'] = self.index
-        data['filename'] = self.headerData.FileName
-        data['datetime'] = DosDateTimeToTimeTuple(self.headerData.FileTime)
-        data['isdir'] = ((self.headerData.Flags & 0xE0) == 0xE0)
-        data['size'] = self.headerData.UnpSize + (
-            self.headerData.UnpSizeHigh << 32)
+        data = {'index': self.index, 'filename': self.headerData.FileName,
+                'datetime': DosDateTimeToTimeTuple(self.headerData.FileTime),
+                'isdir': ((self.headerData.Flags & 0xE0) == 0xE0), 'size': self.headerData.UnpSize + (
+                    self.headerData.UnpSizeHigh << 32)}
         if self.headerData.CmtState == 1:
             data['comment'] = self.headerData.CmtBuf.value
         else:
@@ -256,7 +253,7 @@ class RarInfoIterator(object):
 
 def generate_password_provider(password):
     def password_provider_callback(msg, UserData, P1, P2):
-        if msg == UCM_NEEDPASSWORD and password != None:
+        if msg == UCM_NEEDPASSWORD and password is not None:
             (ctypes.c_char * P2).from_address(P1).value = password
         return 1
 
@@ -322,7 +319,7 @@ class RarFileImplementation(object):
         for info in self.infoiter():
             checkres = checker(info)
             if checkres != False and not info.isdir:
-                if checkres == True:
+                if checkres:
                     fn = info.filename
                     if not withSubpath:
                         fn = os.path.split(fn)[-1]

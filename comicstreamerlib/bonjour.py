@@ -20,11 +20,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import threading
-import select
-import sys
 import logging
+import select
 import socket
+import threading
 
 try:
     import pybonjour
@@ -41,8 +40,7 @@ class BonjourThread(threading.Thread):
         self.port = port
         self.daemon = True
 
-    def register_callback(self, sdRef, flags, errorCode, name, regtype,
-                          domain):
+    def register_callback(self, errorCode, name, regtype):
         if errorCode == pybonjour.kDNSServiceErr_NoError:
             logging.info(
                 "Registered bonjour server: {0}:{1}:(port {2})".format(
@@ -50,7 +48,7 @@ class BonjourThread(threading.Thread):
 
     def run(self):
         if not have_bonjour:
-            logging.warn(
+            logging.warning(
                 "Cannot run bonjour server!  Maybe some packages need to be installed?"
             )
             return

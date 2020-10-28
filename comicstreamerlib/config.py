@@ -21,19 +21,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import os
-import sys
-import platform
-import codecs
-import uuid
 import base64
-import logging
 import io
+import os
+import platform
+import sys
+import uuid
 
 from configobj import ConfigObj
 from validate import Validator
 
-from comicstreamerlib.options import Options
 from comicapi.utils import which, addtopath
 from comicstreamerlib.folders import AppFolders
 

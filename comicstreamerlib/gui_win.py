@@ -12,9 +12,8 @@
 #              win32gui_taskbar.py and win32gui_menu.py demos from PyWin32
 
 import os
-import sys
-import itertools, glob
 import webbrowser
+
 import win32api
 import win32con
 import win32gui_struct
@@ -28,16 +27,16 @@ except ImportError:
 
 
 class WinGui(object):
-    '''TODO'''
+    """TODO"""
     QUIT = 'QUIT'
     SPECIAL_ACTIONS = [QUIT]
 
     FIRST_ID = 1023
 
-    def bye(self, obj):
+    def bye(self):
         print('Bye, then.')
 
-    def show(self, sender):
+    def show(self):
         webbrowser.open(
             "http://localhost:{0}".format(self.apiServer.port), new=0)
 
@@ -121,16 +120,16 @@ class WinGui(object):
                           win32con.WM_USER + 20, hicon, self.hover_text)
         win32gui.Shell_NotifyIcon(message, self.notify_id)
 
-    def restart(self, hwnd, msg, wparam, lparam):
+    def restart(self):
         self.refresh_icon()
 
-    def destroy(self, hwnd, msg, wparam, lparam):
-        if self.on_quit: self.on_quit(self)
+    def destroy(self):
+        if self.on_quit: self.on_quit()
         nid = (self.hwnd, 0)
         win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, nid)
         win32gui.PostQuitMessage(0)  # Terminate the app.
 
-    def notify(self, hwnd, msg, wparam, lparam):
+    def notify(self, lparam):
         if lparam == win32con.WM_LBUTTONDBLCLK:
             self.execute_menu_option(self.default_menu_index + self.FIRST_ID)
         elif lparam == win32con.WM_RBUTTONUP:
@@ -193,7 +192,7 @@ class WinGui(object):
 
         return hbm
 
-    def command(self, hwnd, msg, wparam, lparam):
+    def command(self, wparam):
         id = win32gui.LOWORD(wparam)
         self.execute_menu_option(id)
 

@@ -16,33 +16,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import zipfile
+import ctypes
+import logging
 import os
+import platform
 import struct
+import subprocess
 import sys
 import tempfile
-import subprocess
-import platform
-import locale
-import shutil
+import zipfile
 
 from natsort import natsorted
+from unrar import constants
 from unrar import rarfile
 from unrar import unrarlib
-import unrar.constants
-import ctypes
-import io
-from unrar import constants
 
 
 class OpenableRarFile(rarfile.RarFile):
-    def open(self, member):
-        #print "opening %s..." % member
+    def open(self, member, **kwargs):
+        # print "opening %s..." % member
         # based on https://github.com/matiasb/python-unrar/pull/4/files
         if isinstance(member, rarfile.RarInfo):
             member = member.filename
-        archive = unrarlib.RAROpenArchiveDataEx(
-            self.filename, mode=constants.RAR_OM_EXTRACT)
+        archive = unrarlib.RAROpenArchiveDataEx(self.filename, mode=constants.RAR_OM_EXTRACT)
         handle = self._open(archive)
         found, buf = False, []
 
@@ -57,7 +53,7 @@ class OpenableRarFile(rarfile.RarFile):
         try:
             rarinfo = self._read_header(handle)
             while rarinfo is not None:
-                #print "checking rar archive %s against %s" % (rarinfo.filename, member)
+                # print "checking rar archive %s against %s" % (rarinfo.filename, member)
                 if rarinfo.filename == member:
                     self._process_current(handle, constants.RAR_TEST)
                     found = True
@@ -78,18 +74,19 @@ class OpenableRarFile(rarfile.RarFile):
 import time
 
 from io import StringIO
-from io import BytesIO
+
 try:
     from PIL import Image
+
     pil_available = True
 except ImportError:
     pil_available = False
 
 sys.path.insert(0, os.path.abspath("."))
-#import UnRAR2
-#from UnRAR2.rar_exceptions import *
+# import UnRAR2
+# from UnRAR2.rar_exceptions import *
 
-#from settings import ComicTaggerSettings
+# from settings import ComicTaggerSettings
 from comicapi.comicinfoxml import ComicInfoXml
 from comicapi.comicbookinfo import ComicBookInfo
 from comicapi.comet import CoMet
@@ -125,16 +122,12 @@ class ZipArchiver:
         try:
             data = zf.read(archive_file)
         except zipfile.BadZipfile as e:
-            errMsg = u"bad zipfile [{0}]: {1} :: {2}".format(
-                e, self.path, archive_file)
-            sys.stderr.buffer.write(bytes(errMsg, "UTF-8"))
+            logging.error(u"bad zipfile [{0}]: {1} :: {2}".format(e, self.path, archive_file))
             zf.close()
             raise IOError
         except Exception as e:
             zf.close()
-            errMsg = u"bad zipfile [{0}]: {1} :: {2}".format(
-                e, self.path, archive_file)
-            sys.stderr.buffer.write(bytes(errMsg, "UTF-8"))
+            logging.error(u"bad zipfile [{0}]: {1} :: {2}".format(e, self.path, archive_file))
             raise IOError
         finally:
             zf.close()
@@ -143,7 +136,8 @@ class ZipArchiver:
     def removeArchiveFile(self, archive_file):
         try:
             self.rebuildZipFile([archive_file])
-        except:
+        except Exception as e:
+            logging.exception(e)
             return False
         else:
             return True
@@ -155,13 +149,14 @@ class ZipArchiver:
         try:
             self.rebuildZipFile([archive_file])
 
-            #now just add the archive file as a new one
+            # now just add the archive file as a new one
             zf = zipfile.ZipFile(
                 self.path, mode='a', compression=zipfile.ZIP_DEFLATED)
             zf.writestr(archive_file, data)
             zf.close()
             return True
-        except:
+        except Exception as e:
+            logging.exception(e)
             return False
 
     def getArchiveFilenameList(self):
@@ -171,16 +166,15 @@ class ZipArchiver:
             zf.close()
             return namelist
         except Exception as e:
-            errMsg = u"Unable to get zipfile list [{0}]: {1}".format(
-                e, self.path)
-            sys.stderr.buffer.write(bytes(errMsg, "UTF-8"))
+            logging.error(u"Unable to get zipfile list [{0}]: {1}".format(e, self.path))
+            logging.exception(e)
             return []
 
     # zip helper func
     def rebuildZipFile(self, exclude_list):
 
         # this recompresses the zip archive, without the files in the exclude_list
-        #errMsg=u"Rebuilding zip {0} without {1}".format( self.path, exclude_list )
+        # errMsg=u"Rebuilding zip {0} without {1}".format( self.path, exclude_list )
 
         # generate temp file
         tmp_fd, tmp_name = tempfile.mkstemp(dir=os.path.dirname(self.path))
@@ -190,10 +184,10 @@ class ZipArchiver:
         zout = zipfile.ZipFile(tmp_name, 'w')
         for item in zin.infolist():
             buffer = zin.read(item.filename)
-            if (item.filename not in exclude_list):
+            if item.filename not in exclude_list:
                 zout.writestr(item, buffer)
 
-        #preserve the old comment
+        # preserve the old comment
         zout.comment = zin.comment
 
         zout.close()
@@ -213,14 +207,14 @@ class ZipArchiver:
         see: http://en.wikipedia.org/wiki/Zip_(file_format)#Structure
         """
 
-        #get file size
+        # get file size
         statinfo = os.stat(filename)
         file_length = statinfo.st_size
 
         try:
             fo = open(filename, "r+b")
 
-            #the starting position, relative to EOF
+            # the starting position, relative to EOF
             pos = -4
 
             found = False
@@ -233,13 +227,13 @@ class ZipArchiver:
 
                 value = fo.read(4)
 
-                #look for the end of central directory signature
+                # look for the end of central directory signature
                 if bytearray(value) == bytearray([0x50, 0x4b, 0x05, 0x06]):
                     found = True
                 else:
                     # not found, step back another byte
                     pos = pos - 1
-                #print pos,"{1} int: {0:x}".format(bytearray(value)[0], value)
+                # print pos,"{1} int: {0:x}".format(bytearray(value)[0], value)
 
             if found:
 
@@ -262,7 +256,8 @@ class ZipArchiver:
                 fo.close()
             else:
                 raise Exception('Failed to write comment to zip file!')
-        except:
+        except Exception as e:
+            logging.exception(e)
             return False
         else:
             return True
@@ -277,25 +272,24 @@ class ZipArchiver:
                     zout.writestr(fname, data)
             zout.close()
 
-            #preserve the old comment
+            # preserve the old comment
             comment = otherArchive.getArchiveComment()
             if comment is not None:
                 if not self.writeZipComment(self.path, comment):
                     return False
         except Exception as e:
-            errMsg = u"Error while copying to {0}: {1}".format(self.path, e)
-            sys.stderr.buffer.write(bytes(errMsg, "UTF-8"))
+            logging.error(u"Error while copying to {0}: {1}".format(self.path, e))
+            logging.exception(e)
             return False
         else:
             return True
 
 
-#------------------------------------------
+# ------------------------------------------
 # RAR implementation
 
 
 class RarArchiver:
-
     devnull = None
 
     def __init__(self, path, rar_exe_path):
@@ -314,7 +308,7 @@ class RarArchiver:
             self.startupinfo = None
 
     def __del__(self):
-        #RarArchiver.devnull.close()
+        # RarArchiver.devnull.close()
         pass
 
     def getArchiveComment(self):
@@ -338,7 +332,7 @@ class RarArchiver:
                 subprocess.call(
                     [
                         self.rar_exe_path, 'c', '-w' + working_dir, '-c-',
-                        '-z' + tmp_name, self.path
+                                                '-z' + tmp_name, self.path
                     ],
                     startupinfo=self.startupinfo,
                     stdout=RarArchiver.devnull)
@@ -347,7 +341,8 @@ class RarArchiver:
                     time.sleep(1)
 
                 os.remove(tmp_name)
-            except:
+            except Exception as e:
+                logging.exception(e)
                 return False
             else:
                 return True
@@ -358,7 +353,7 @@ class RarArchiver:
 
         # Make sure to escape brackets, since some funky stuff is going on
         # underneath with "fnmatch"
-        #archive_file = archive_file.replace("[", '[[]')
+        # archive_file = archive_file.replace("[", '[[]')
         entries = []
 
         rarc = self.getRARObj()
@@ -367,16 +362,16 @@ class RarArchiver:
         while tries < 7:
             try:
                 tries = tries + 1
-                #tmp_folder = tempfile.mkdtemp()
-                #tmp_file = os.path.join(tmp_folder, archive_file)
-                #rarc.extract(archive_file, tmp_folder)
-                data = rarc.open(archive_file)
-                #data = open(tmp_file).read()
+                # tmp_folder = tempfile.mkdtemp()
+                # tmp_file = os.path.join(tmp_folder, archive_file)
+                # rarc.extract(archive_file, tmp_folder)
+                data = rarc.open(archive_file, )
+                # data = open(tmp_file).read()
                 entries = [(rarc.getinfo(archive_file), data)]
 
-                #shutil.rmtree(tmp_folder, ignore_errors=True)
+                # shutil.rmtree(tmp_folder, ignore_errors=True)
 
-                #entries = rarc.read_files( archive_file )
+                # entries = rarc.read_files( archive_file )
 
                 if entries[0][0].file_size != len(entries[0][1]):
                     errMsg = u"readArchiveFile(): [file is not expected size: {0} vs {1}]  {2}:{3} [attempt # {4}]".format(
@@ -386,23 +381,22 @@ class RarArchiver:
                     continue
 
             except (OSError, IOError) as e:
-                errMsg = u"readArchiveFile(): [{0}]  {1}:{2} attempt#{3}".format(
-                    str(e), self.path, archive_file, tries)
-                sys.stderr.buffer.write(bytes(errMsg, "UTF-8"))
+                logging.error(
+                    u"readArchiveFile(): [{0}]  {1}:{2} attempt#{3}".format(str(e), self.path, archive_file, tries))
+                logging.exception(e)
                 time.sleep(1)
             except Exception as e:
-                errMsg = u"Unexpected exception in readArchiveFile(): [{0}] for {1}:{2} attempt#{3}".format(
-                    str(e), self.path, archive_file, tries)
-                sys.stderr.buffer.write(bytes(errMsg, "UTF-8"))
+                logging.error(u"Unexpected exception in readArchiveFile(): [{0}] for {1}:{2} attempt#{3}".format(
+                    str(e), self.path, archive_file, tries))
+                logging.exception(e)
                 break
 
             else:
-                #Success"
-                #entries is a list of of tuples:  ( rarinfo, filedata)
+                # Success"
+                # entries is a list of of tuples:  ( rarinfo, filedata)
                 if tries > 1:
-                    errMsg = u"Attempted read_files() {0} times".format(tries)
-                    sys.stderr.buffer.write(bytes(errMsg, "UTF-8"))
-                if (len(entries) == 1):
+                    logging.error(u"Attempted read_files() {0} times".format(tries))
+                if len(entries) == 1:
                     return entries[0][1]
                 else:
                     raise IOError
@@ -438,7 +432,8 @@ class RarArchiver:
                     time.sleep(1)
                 os.remove(tmp_file)
                 os.rmdir(tmp_folder)
-            except:
+            except Exception as e:
+                logging.exception(e)
                 return False
             else:
                 return True
@@ -456,7 +451,8 @@ class RarArchiver:
 
                 if platform.system() == "Darwin":
                     time.sleep(1)
-            except:
+            except Exception as e:
+                logging.exception(e)
                 return False
             else:
                 return True
@@ -466,27 +462,27 @@ class RarArchiver:
     def getArchiveFilenameList(self):
 
         rarc = self.getRARObj()
-        #namelist = [ item.filename for item in rarc.infolist() ]
-        #return namelist
+        # namelist = [ item.filename for item in rarc.infolist() ]
+        # return namelist
 
         tries = 0
         while tries < 7:
             try:
                 tries = tries + 1
-                #namelist = [ item.filename for item in rarc.infolist() ]
+                # namelist = [ item.filename for item in rarc.infolist() ]
                 namelist = []
                 for item in rarc.infolist():
                     if item.file_size != 0:
                         namelist.append(item.filename)
 
             except (OSError, IOError) as e:
-                errMsg = u"getArchiveFilenameList(): [{0}] {1} attempt#{2}".format(
-                    str(e), self.path, tries)
-                sys.stderr.buffer.write(bytes(errMsg, "UTF-8"))
+                logging.error(u"getArchiveFilenameList(): [{0}] {1} attempt#{2}".format(
+                    str(e), self.path, tries))
+                logging.exception(e)
                 time.sleep(1)
 
             else:
-                #Success"
+                # Success"
                 return namelist
 
         raise e
@@ -496,23 +492,22 @@ class RarArchiver:
         while tries < 7:
             try:
                 tries = tries + 1
-                #rarc = UnRAR2.RarFile( self.path )
+                # rarc = UnRAR2.RarFile( self.path )
                 rarc = OpenableRarFile(self.path)
 
             except (OSError, IOError) as e:
-                errMsg = u"getRARObj(): [{0}] {1} attempt#{2}".format(
-                    str(e), self.path, tries)
-                sys.stderr.buffer.write(bytes(errMsg, "UTF-8"))
+                logging.error(u"getRARObj(): [{0}] {1} attempt#{2}".format(
+                    str(e), self.path, tries))
+                logging.exception(e)
                 time.sleep(1)
-
             else:
-                #Success"
+                # Success"
                 return rarc
 
         raise e
 
 
-#------------------------------------------
+# ------------------------------------------
 # Folder implementation
 class FolderArchiver:
     def __init__(self, path):
@@ -534,6 +529,7 @@ class FolderArchiver:
                 data = f.read()
                 f.close()
         except IOError as e:
+            logging.exception(e)
             pass
 
         return data
@@ -545,7 +541,8 @@ class FolderArchiver:
             with open(fname, 'w+') as f:
                 f.write(data)
                 f.close()
-        except:
+        except Exception as e:
+            logging.exception(e)
             return False
         else:
             return True
@@ -555,7 +552,8 @@ class FolderArchiver:
         fname = os.path.join(self.path, archive_file)
         try:
             os.remove(fname)
-        except:
+        except Exception as e:
+            logging.exception(e)
             return False
         else:
             return True
@@ -564,7 +562,6 @@ class FolderArchiver:
         return self.listFiles(self.path)
 
     def listFiles(self, folder):
-
         itemlist = list()
 
         for item in os.listdir(folder):
@@ -575,7 +572,7 @@ class FolderArchiver:
         return itemlist
 
 
-#------------------------------------------
+# ------------------------------------------
 # Unknown implementation
 class UnknownArchiver:
     def __init__(self, path):
@@ -626,13 +623,12 @@ class PdfArchiver:
         out = []
         pdf = PdfFileReader(open(self.path, 'rb'))
         for page in range(1, pdf.getNumPages() + 1):
-            out.append("/%04d.jpg" % (page))
+            out.append("/%04d.jpg" % page)
         return out
 
 
-#------------------------------------------------------------------
+# ------------------------------------------------------------------
 class ComicArchive:
-
     logo_data = None
 
     class ArchiveType:
@@ -656,8 +652,7 @@ class ComicArchive:
         if ext == ".cbr" or ext == ".rar":
             if self.rarTest():
                 self.archive_type = self.ArchiveType.Rar
-                self.archiver = RarArchiver(
-                    self.path, rar_exe_path=self.rar_exe_path)
+                self.archiver = RarArchiver(self.path, rar_exe_path=self.rar_exe_path)
 
             elif self.zipTest():
                 self.archive_type = self.ArchiveType.Zip
@@ -676,7 +671,6 @@ class ComicArchive:
                 self.archiver = PdfArchiver(self.path)
 
         if ComicArchive.logo_data is None:
-            #fname = ComicTaggerSettings.getGraphic('nocover.png')
             fname = self.default_image_path
             with open(fname, 'rb') as fd:
                 ComicArchive.logo_data = fd.read()
@@ -706,8 +700,9 @@ class ComicArchive:
 
     def rarTest(self):
         try:
-            rarc = rarfile.RarFile(self.path)
-        except:  # InvalidRARArchive:
+            rarfile.RarFile(self.path)
+        except Exception as e:
+            # logging.exception(e)
             return False
         else:
             return True
@@ -736,7 +731,7 @@ class ComicArchive:
 
         elif ((self.archive_type != self.ArchiveType.Folder)
               and (not os.access(
-                  os.path.dirname(os.path.abspath(self.path)), os.W_OK))):
+                    os.path.dirname(os.path.abspath(self.path)), os.W_OK))):
             return False
 
         return True
@@ -749,15 +744,19 @@ class ComicArchive:
         return self.isWritable()
 
     def seemsToBeAComicArchive(self):
-
-        # Do we even care about extensions??
-        ext = os.path.splitext(self.path)[1].lower()
-
-        if ((self.isZip() or self.isRar() or self.isPdf()
-             )  #or self.isFolder() )
-                and (self.getNumberOfPages() > 0)):
-            return True
-        else:
+        try:
+            # Do we even care about extensions??
+            ext = os.path.splitext(self.path)[1].lower()
+            if ext == ".cbr" or ext == ".cbz":
+                # or self.isPdf()
+                if (self.isZip() or self.isRar()) and (self.getNumberOfPages() > 0):
+                    return True
+                else:
+                    return False
+            else:
+                return False
+        except Exception as e:
+            logging.exception(e)
             return False
 
     def readMetadata(self, style):
@@ -812,9 +811,9 @@ class ComicArchive:
         if filename is not None:
             try:
                 image_data = self.archiver.readArchiveFile(filename)
-            except IOError:
-                errMsg = u"Error reading in page.  Substituting logo page."
-                sys.stderr.buffer.write(bytes(errMsg, "UTF-8"))
+            except IOError as e:
+                logging.exception(e)
+                logging.error(u"Error reading in page. Substituting logo page.")
                 image_data = ComicArchive.logo_data
 
         return image_data
@@ -836,11 +835,11 @@ class ComicArchive:
 
         scanner_page_index = None
 
-        #make a guess at the scanner page
+        # make a guess at the scanner page
         name_list = self.getPageNameList()
         count = self.getNumberOfPages()
 
-        #too few pages to really know
+        # too few pages to really know
         if count < 5:
             return None
 
@@ -872,7 +871,7 @@ class ComicArchive:
         prefix = os.path.commonprefix(common_length_list)
 
         if mode_length <= 7 and prefix == "":
-            #probably all numbers
+            # probably all numbers
             if len(final_name) > mode_length:
                 scanner_page_index = count - 1
 
@@ -890,21 +889,20 @@ class ComicArchive:
 
             # seems like some archive creators are on  Windows, and don't know about case-sensitivity!
             if sort_list:
-
                 def keyfunc(k):
-                    #hack to account for some weird scanner ID pages
-                    #basename=os.path.split(k)[1]
-                    #if basename < '0':
+                    # hack to account for some weird scanner ID pages
+                    # basename=os.path.split(k)[1]
+                    # if basename < '0':
                     #	k = os.path.join(os.path.split(k)[0], "z" + basename)
                     return k.lower()
 
-                files = natsorted(files, key=keyfunc, signed=False)
+                files = natsorted(files, key=keyfunc)
 
             # make a sub-list of image files
             self.page_list = []
             for name in files:
                 if (name[-4:].lower() in [
-                        ".jpg", "jpeg", ".png", ".gif", "webp"
+                    ".jpg", "jpeg", ".png", ".gif", "webp"
                 ] and os.path.basename(name)[0] != "."):
                     self.page_list.append(name)
 
@@ -929,7 +927,7 @@ class ComicArchive:
         return self.cbi_md
 
     def readRawCBI(self):
-        if (not self.hasCBI()):
+        if not self.hasCBI():
             return None
 
         return self.archiver.getArchiveComment()
@@ -937,7 +935,7 @@ class ComicArchive:
     def hasCBI(self):
         if self.has_cbi is None:
 
-            #if ( not ( self.isZip() or self.isRar()) or not self.seemsToBeAComicArchive() ):
+            # if ( not ( self.isZip() or self.isRar()) or not self.seemsToBeAComicArchive() ):
             if not self.seemsToBeAComicArchive():
                 self.has_cbi = False
             else:
@@ -977,7 +975,7 @@ class ComicArchive:
             else:
                 self.cix_md = ComicInfoXml().metadataFromString(raw_cix)
 
-            #validate the existing page list (make sure count is correct)
+            # validate the existing page list (make sure count is correct)
             if len(self.cix_md.pages) != 0:
                 if len(self.cix_md.pages) != self.getNumberOfPages():
                     # pages array doesn't match the actual number of images we're seeing
@@ -995,7 +993,7 @@ class ComicArchive:
         try:
             raw_cix = self.archiver.readArchiveFile(self.ci_xml_filename)
         except IOError:
-            print("Error reading in raw CIX!")
+            logging.error(u"Error reading in raw CIX!")
             raw_cix = ""
         return raw_cix
 
@@ -1046,7 +1044,7 @@ class ComicArchive:
                 self.comet_md = CoMet().metadataFromString(raw_comet)
 
             self.comet_md.setDefaultPageList(self.getNumberOfPages())
-            #use the coverImage value from the comet_data to mark the cover in this struct
+            # use the coverImage value from the comet_data to mark the cover in this struct
             # walk through list of images in file, and find the matching one for md.coverImage
             # need to remove the existing one in the default
             if self.comet_md.coverImage is not None:
@@ -1070,9 +1068,9 @@ class ComicArchive:
 
         try:
             raw_comet = self.archiver.readArchiveFile(self.comet_filename)
-        except IOError:
-            errMsg = u"Error reading in raw CoMet!"
-            sys.stderr.buffer.write(bytes(errMsg, "UTF-8"))
+        except IOError as e:
+            logging.error(u"Error reading in raw CoMet!")
+            logging.exception(e)
             raw_comet = ""
         return raw_comet
 
@@ -1116,17 +1114,17 @@ class ComicArchive:
             if not self.seemsToBeAComicArchive():
                 return self.has_comet
 
-            #look at all xml files in root, and search for CoMet data, get first
+            # look at all xml files in root, and search for CoMet data, get first
             for n in self.archiver.getArchiveFilenameList():
                 if (os.path.dirname(n) == ""
                         and os.path.splitext(n)[1].lower() == '.xml'):
                     # read in XML file, and validate it
                     try:
                         data = self.archiver.readArchiveFile(n)
-                    except:
+                    except Exception as e:
+                        logging.error(u"Error reading in Comet XML for validation!")
+                        logging.exception(e)
                         data = ""
-                        errMsg = u"Error reading in Comet XML for validation!"
-                        sys.stderr.buffer.write(bytes(errMsg, "UTF-8"))
                     if CoMet().validateString(data):
                         # since we found it, save it!
                         self.comet_filename = n

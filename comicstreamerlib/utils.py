@@ -155,12 +155,12 @@ def resizeImage(max, image_data):
 #
 # taken from http://united-coders.com/christian-harms/image-resizing-tips-every-coder-should-know/
 def resize(img, box, out, fit=False):
-    '''Downsample the image.
+    """Downsample the image.
     @param img: Image -  an Image-object
     @param box: tuple(x, y) - the bounding box of the result image
-    @param fix: boolean - crop the image to fill the box
+    @param fit: boolean - crop the image to fill the box
     @param out: file-like-object - save the image into the output stream
-    '''
+    """
 
     if type(img) != Image and type(img) == bytes:
         img = Image.open(BytesIO(img))

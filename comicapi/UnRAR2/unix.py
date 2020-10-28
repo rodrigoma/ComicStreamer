@@ -118,9 +118,13 @@ class RarFileImplementation(object):
                 signature.split(" ")[1])
 
     def escaped_password(self):
-        return '-' if self.password == None else self.password
+        return '-' if self.password is None else self.password
 
-    def call(self, cmd, options=[], files=[]):
+    def call(self, cmd, options=None, files=None):
+        if files is None:
+            files = []
+        if options is None:
+            options = []
         options2 = options + ['p' + self.escaped_password()]
         soptions = ['-' + x for x in options2]
         return call_unrar([cmd] + soptions + ['--', self.archiveName] + files)
@@ -151,11 +155,9 @@ class RarFileImplementation(object):
             while not line.startswith('-----------'):
                 accum.append(line)
                 if len(accum) == 2:
-                    data = {}
-                    data['index'] = i
+                    data = {'index': i, 'filename': accum[0].strip().lstrip(
+                        "*")}
                     # asterisks mark password-encrypted files
-                    data['filename'] = accum[0].strip().lstrip(
-                        "*")  # asterisks marks password-encrypted files
                     fields = re_spaces.split(accum[1].strip())
                     data['size'] = int(fields[0])
                     attr = fields[5]
@@ -170,10 +172,7 @@ class RarFileImplementation(object):
         elif rar_executable_version == 5:
             while not line.startswith('-----------'):
                 fields = line.strip().lstrip("*").split()
-                data = {}
-                data['index'] = i
-                data['filename'] = " ".join(fields[4:])
-                data['size'] = int(fields[1])
+                data = {'index': i, 'filename': " ".join(fields[4:]), 'size': int(fields[1])}
                 attr = fields[0]
                 data['isdir'] = 'd' in attr.lower()
                 data['datetime'] = time.strptime(fields[2] + " " + fields[3],

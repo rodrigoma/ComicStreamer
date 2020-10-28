@@ -94,7 +94,7 @@ class ComicBookInfo:
         except:
             return False
 
-        return ('ComicBookInfo/1.0' in cbi_container)
+        return 'ComicBookInfo/1.0' in cbi_container
 
     def createJSONDictionary(self, metadata):
 

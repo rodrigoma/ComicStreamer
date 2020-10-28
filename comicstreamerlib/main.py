@@ -20,33 +20,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import os
-import sys
-import time
 import logging
 import logging.handlers
+import os
 import platform
 import signal
+import sys
 
 import comicstreamerlib.utils
+from comicstreamerlib.bonjour import BonjourThread
 from comicstreamerlib.config import ComicStreamerConfig
 from comicstreamerlib.folders import AppFolders
 from comicstreamerlib.options import Options
 from comicstreamerlib.server import APIServer
-from comicstreamerlib.bonjour import BonjourThread
-
-#from gui import GUIThread
 
 
-class Launcher():
-    def signal_handler(self, signal, frame):
+class Launcher:
+    def signal_handler(self):
         logging.info("Caught Ctrl-C or SIGTERM.  exiting.")
         if self.apiServer:
             self.apiServer.shutdown()
         sys.exit()
 
     def go(self):
-        #Configure logging
+        # Configure logging
         # root level
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
@@ -67,15 +64,13 @@ class Launcher():
         elif opts.quiet:
             sh.setLevel(logging.CRITICAL)
 
-        formatter = logging.Formatter(
-            '%(asctime)s - %(levelname)s - %(message)s')
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         sh.setFormatter(formatter)
 
         log_file = os.path.join(AppFolders.logs(), "ComicStreamer.log")
         if not os.path.exists(os.path.dirname(log_file)):
             os.makedirs(os.path.dirname(log_file))
-        fh = logging.handlers.RotatingFileHandler(
-            log_file, maxBytes=1048576, backupCount=4, encoding="UTF8")
+        fh = logging.handlers.RotatingFileHandler(log_file, maxBytes=1048576, backupCount=4, encoding="UTF8")
         fh.setLevel(logging.DEBUG)
         fh.setFormatter(formatter)
         logger.addHandler(fh)
@@ -107,10 +102,10 @@ class Launcher():
                 WinGui(self.apiServer).run()
                 self.apiServer.shutdown()
         else:
-            #from gui_qt import QtBasedGui
-            #self.apiServer.runInThread()
-            #QtBasedGui(self.apiServer).run()
-            #self.apiServer.shutdown()
+            # from gui_qt import QtBasedGui
+            # self.apiServer.runInThread()
+            # QtBasedGui(self.apiServer).run()
+            # self.apiServer.shutdown()
             self.apiServer.run()
 
         logging.info("GUI should be done now")

@@ -4,23 +4,17 @@
 # Do not change the previous lines. See PEP 8, PEP 263.
 #
 
-import sys
-import os
-import hashlib
-import mmap
 import datetime
-import time
-import threading
 import queue
-import logging
-from watchdog.observers import Observer
-from watchdog.events import LoggingEventHandler
+import threading
+from io import BytesIO
+
 import watchdog
+from watchdog.events import LoggingEventHandler
+from watchdog.observers import Observer
 
-from comicapi.comicarchive import *
-from comicapi.issuestring import *
 import comicstreamerlib.utils
-
+from comicapi.comicarchive import *
 from comicstreamerlib.database import *
 from comicstreamerlib.library import Library
 
@@ -36,7 +30,7 @@ class MonitorEventHandler(watchdog.events.FileSystemEventHandler):
         self.monitor.handleSingleEvent(event)
 
 
-class Monitor():
+class Monitor:
     def __init__(self, dm, paths):
 
         self.dm = dm
@@ -62,44 +56,55 @@ class Monitor():
         self.thread.join()
 
     def mainLoop(self):
+        try:
+            global args
+            logging.debug("Monitor: started main loop.")
+            self.session = self.dm.Session()
+            self.library = Library(self.dm.Session)
 
-        logging.debug("Monitor: started main loop.")
-        self.session = self.dm.Session()
-        self.library = Library(self.dm.Session)
+            observer = Observer()
+            self.eventHandler = MonitorEventHandler(self)
+            for path in self.paths:
+                if os.path.exists(path):
+                    observer.schedule(self.eventHandler, path, recursive=True)
+            observer.start()
 
-        observer = Observer()
-        self.eventHandler = MonitorEventHandler(self)
-        for path in self.paths:
-            if os.path.exists(path):
-                observer.schedule(self.eventHandler, path, recursive=True)
-        observer.start()
+            while True:
+                self._loop()
+                # time.sleep(1)
+                if self.quit:
+                    break
 
-        while True:
+            self.session.close()
+            self.session = None
+            observer.stop()
+            logging.debug("Monitor: stopped main loop.")
+        except Exception as e:
+            logging.exception(e)
+
+    def _loop(self):
+        global args
+        try:
+            (msg, args) = self.queue.get(block=True, timeout=1)
+        except Exception as e:
+            # logging.exception(e)
+            msg = None
+        # dispatch messages
+        if msg == "scan":
             try:
-                (msg, args) = self.queue.get(block=True, timeout=1)
-            except:
-                msg = None
-
-            #dispatch messages
-            if msg == "scan":
                 self.dofullScan(self.paths)
-
-            if msg == "events":
+            except Exception as e:
+                logging.exception(e)
+        if msg == "events":
+            try:
                 self.doEventProcessing(args)
-
-            #time.sleep(1)
-            if self.quit:
-                break
-
-        self.session.close()
-        self.session = None
-        observer.stop()
-        logging.debug("Monitor: stopped main loop.")
+            except Exception as e:
+                logging.exception(e)
 
     def scan(self):
         self.queue.put(("scan", None))
 
-    def handleSingleEvent(self, event):
+    def handleSingleEvent(self):
         # events may happen in clumps.  start a timer
         # to defer processing.  if the timer is already going,
         # it will be canceled
@@ -113,8 +118,8 @@ class Monitor():
 
         if self.eventProcessingTimer is not None:
             self.eventProcessingTimer.cancel()
-        self.eventProcessingTimer = threading.Timer(30,
-                                                    self.handleEventProcessing)
+
+        self.eventProcessingTimer = threading.Timer(30, self.handleEventProcessing)
         self.eventProcessingTimer.start()
 
         self.mutex.release()
@@ -151,7 +156,7 @@ class Monitor():
         else:
             # file exists.  check the mod date.
             # if it's been modified, remove it, and it'll be re-added
-            #curr = datetime.datetime.fromtimestamp(os.path.getmtime(comic.path))
+            # curr = datetime.datetime.fromtimestamp(os.path.getmtime(comic.path))
             curr = datetime.utcfromtimestamp(os.path.getmtime(comic.path))
             prev = comic.mod_ts
             if curr != prev:
@@ -161,13 +166,10 @@ class Monitor():
         return remove
 
     def getComicMetadata(self, path):
-
-        ca = ComicArchive(
-            path, default_image_path=AppFolders.imagePath("default.jpg"))
-
+        ca = ComicArchive(path, default_image_path=AppFolders.imagePath("default.jpg"))
+        logging.debug(u"checking path {0}\r".format(path))
         if ca.seemsToBeAComicArchive():
-            logging.debug(u"Reading in {0} {1}\r".format(
-                self.read_count, path))
+            logging.debug(u"Reading in {0} {1}\r".format(self.read_count, path))
             sys.stdout.flush()
             self.read_count += 1
 
@@ -190,9 +192,9 @@ class Monitor():
             md.filesize = os.path.getsize(md.path)
             md.hash = ""
 
-            #thumbnail generation
+            # thumbnail generation
             image_data = ca.getPage(0)
-            #now resize it
+            # now resize it
             thumb = BytesIO()
             comicstreamerlib.utils.resize(image_data, (200, 200), thumb)
             md.thumbnail = thumb.getvalue()
@@ -248,17 +250,15 @@ class Monitor():
         self.status = "SCANNING"
 
         logging.info(u"Monitor: Beginning file scan...")
-        self.setStatusDetail(
-            u"Monitor: Making a list of all files in the folders...")
+        self.setStatusDetail(u"Monitor: Making a list of all files in the folders...")
 
         self.add_count = 0
         self.remove_count = 0
 
         filelist, to_remove = self.createAddRemoveLists(dirs)
 
-        self.setStatusDetail(
-            u"Monitor: Removing missing or modified files from db ({0} files)".
-            format(len(to_remove)), logging.INFO)
+        self.setStatusDetail(u"Monitor: Removing missing or modified files from db ({0} files)".format(len(to_remove)),
+                             logging.INFO)
         if len(to_remove) > 0:
             self.library.deleteComics(to_remove)
 
@@ -268,21 +268,24 @@ class Monitor():
         md_list = []
         self.read_count = 0
         for filename in filelist:
-            md = self.getComicMetadata(filename)
-            if md is not None:
-                md_list.append(md)
-            self.setStatusDetailOnly(
-                u"Monitor: {0} files: {1} scanned, {2} added to library...".
-                format(len(filelist), self.read_count, self.add_count))
-            if self.quit:
-                self.setStatusDetail(u"Monitor: halting scan!")
-                return
+            try:
+                md = self.getComicMetadata(filename)
+                if md is not None:
+                    md_list.append(md)
+                self.setStatusDetailOnly(
+                    u"Monitor: {0} files: {1} scanned, {2} added to library...".
+                        format(len(filelist), self.read_count, self.add_count))
+                if self.quit:
+                    self.setStatusDetail(u"Monitor: halting scan!")
+                    return
 
-            #every so often, commit to DB
-            if self.read_count % 10 == 0 and self.read_count != 0:
-                if len(md_list) > 0:
-                    self.commitMetadataList(md_list)
-                    md_list = []
+                # every so often, commit to DB
+                if self.read_count % 10 == 0 and self.read_count != 0:
+                    if len(md_list) > 0:
+                        self.commitMetadataList(md_list)
+                        md_list = []
+            except Exception as e:
+                logging.exception(e)
 
         if len(md_list) > 0:
             self.commitMetadataList(md_list)
@@ -322,7 +325,7 @@ if __name__ == '__main__':
     m.start()
     m.scan()
 
-    #while True:
+    # while True:
     #   time.sleep(10)
 
     m.stop()

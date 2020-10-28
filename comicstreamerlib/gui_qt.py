@@ -5,11 +5,10 @@
 #
 
 import sys
-import webbrowser
-import os
-from comicstreamerlib.folders import AppFolders
 
 from PyQt4 import QtGui, QtCore
+
+from comicstreamerlib.folders import AppFolders
 
 
 class SystemTrayIcon(QtGui.QSystemTrayIcon):
@@ -26,7 +25,7 @@ class SystemTrayIcon(QtGui.QSystemTrayIcon):
         QtCore.QCoreApplication.quit()
 
 
-class QtBasedGui():
+class QtBasedGui:
     def __init__(self, apiServer):
         self.apiServer = apiServer
 

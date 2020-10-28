@@ -4,19 +4,20 @@
 # Do not change the previous lines. See PEP 8, PEP 263.
 #
 """Encapsulates all data acces code to maintain the comic library"""
-from datetime import datetime
-import dateutil
+import logging
 import os
+from datetime import datetime
 
+import dateutil
 from sqlalchemy import func, distinct
 from sqlalchemy.orm import subqueryload
 
 import comicstreamerlib.utils
+from comicapi.comicarchive import ComicArchive
+from comicapi.issuestring import IssueString
 from comicstreamerlib.database import Comic, DatabaseInfo, Person, Role, Credit, Character, GenericTag, Team, Location, \
     StoryArc, Genre, DeletedComic
 from comicstreamerlib.folders import AppFolders
-from comicapi.comicarchive import ComicArchive
-from comicapi.issuestring import IssueString
 
 
 class Library:
@@ -32,14 +33,14 @@ class Library:
     def getComicThumbnail(self, comic_id):
         """Fast access to a comic thumbnail"""
         return self.getSession().query(Comic.thumbnail) \
-                   .filter(Comic.id == int(comic_id)).scalar()
+            .filter(Comic.id == int(comic_id)).scalar()
 
     def getComic(self, comic_id):
         return self.getSession().query(Comic).get(int(comic_id))
 
     def getComicPage(self, comic_id, page_number, max_height=None):
         (path, page_count) = self.getSession().query(Comic.path, Comic.page_count) \
-                                 .filter(Comic.id == int(comic_id)).first()
+            .filter(Comic.id == int(comic_id)).first()
 
         image_data = None
         default_img_file = AppFolders.imagePath("default.jpg")
@@ -59,7 +60,8 @@ class Library:
             try:
                 image_data = comicstreamerlib.utils.resizeImage(
                     int(max_height), image_data)
-            except:
+            except Exception as e:
+                logging.exception(e)
                 pass
         return image_data
 
@@ -80,27 +82,26 @@ class Library:
         return stats
 
     def getComicPaths(self):
-        return self.getSession().query(Comic.id, Comic.path,
-                                       Comic.mod_ts).all()
+        return self.getSession().query(Comic.id, Comic.path, Comic.mod_ts).all()
 
     def recentlyAddedComics(self, limit=10):
-        return self.getSession().query(Comic)\
-                   .order_by(Comic.added_ts.desc())\
-                   .limit(limit)
+        return self.getSession().query(Comic) \
+            .order_by(Comic.added_ts.desc()) \
+            .limit(limit)
 
     def recentlyReadComics(self, limit=10):
-        return self.getSession().query(Comic)\
-                   .filter(Comic.lastread_ts != "")\
-                   .order_by(Comic.lastread_ts.desc())\
-                   .limit(limit)
+        return self.getSession().query(Comic) \
+            .filter(Comic.lastread_ts != "") \
+            .order_by(Comic.lastread_ts.desc()) \
+            .limit(limit)
 
     def getRoles(self):
         return self.getSession().query(Role).all()
 
     def randomComic(self):
         # SQLite specific random call
-        return self.getSession().query(Comic)\
-                   .order_by(func.random()).limit(1).first()
+        return self.getSession().query(Comic) \
+            .order_by(func.random()).limit(1).first()
 
     def getDeletedComics(self, since=None):
         # get all deleted comics first
@@ -112,7 +113,8 @@ class Library:
             try:
                 dt = dateutil.parser.parse(since)
                 resultset = resultset.filter(DeletedComic.ts >= dt)
-            except:
+            except Exception as e:
+                logging.exception(e)
                 pass
         return resultset.all()
 
@@ -147,7 +149,8 @@ class Library:
                         day = int(md.day)
                     year = int(md.year)
                     comic.date = datetime(year, month, day)
-                except:
+                except Exception as e:
+                    logging.exception(e)
                     pass
 
             comic.year = md.year
@@ -241,7 +244,9 @@ class Library:
         self.getSession().query(
             DatabaseInfo).first().last_updated = datetime.utcnow()
 
-    def list(self, criteria={}, paging=None):
+    def list(self, criteria=None, paging=None):
+        if criteria is None:
+            criteria = {}
         if paging is None:
             paging = {'per_page': 10, 'offset': 1}
 
@@ -253,7 +258,7 @@ class Library:
         query = query.options(subqueryload('storyarcs_raw'))
         query = query.options(subqueryload('locations_raw'))
         query = query.options(subqueryload('teams_raw'))
-        #query = query.options(subqueryload('credits_raw'))
+        # query = query.options(subqueryload('credits_raw'))
         query = query.options(subqueryload('generictags_raw'))
 
         return query.all(), total_results
@@ -267,24 +272,26 @@ class Library:
         if per_page is not None:
             total_results = query.distinct().count()
             try:
-                max = 0
                 max = int(per_page)
                 if total_results > max:
                     query = query.limit(max)
-            except:
+            except Exception as e:
+                logging.exception(e)
                 pass
 
         if offset is not None:
             try:
-                off = 0
                 off = int(offset)
                 query = query.offset(off)
-            except:
+            except Exception as e:
+                logging.exception(e)
                 pass
 
         return query, total_results
 
     def processComicQueryArgs(self, query, criteria):
+        global order_desc
+
         def hasValue(obj):
             return obj is not None and obj != ""
 
@@ -322,13 +329,13 @@ class Library:
                     role = credit_info[1]
 
         if hasValue(person):
-            query = query.join(Credit)\
-                         .filter(Person.name.ilike(person.replace("*", "%"))) \
-                         .filter(Credit.person_id == Person.id)
+            query = query.join(Credit) \
+                .filter(Person.name.ilike(person.replace("*", "%"))) \
+                .filter(Credit.person_id == Person.id)
             if role is not None:
                 query = query.filter(Credit.role_id == Role.id) \
-                             .filter(Role.name.ilike(role.replace("*", "%")))
-            #query = query.filter( Comic.persons.contains(str(person).replace("*","%") ))
+                    .filter(Role.name.ilike(role.replace("*", "%")))
+            # query = query.filter( Comic.persons.contains(str(person).replace("*","%") ))
 
         if hasValue(keyphrase_filter):
             keyphrase_filter = str(keyphrase_filter).replace("*", "%")
@@ -339,10 +346,10 @@ class Library:
                 | Comic.publisher.ilike(keyphrase_filter)
                 | Comic.path.ilike(keyphrase_filter)
                 | Comic.comments.ilike(keyphrase_filter)
-                #| Comic.characters_raw.any(Character.name.ilike(keyphrase_filter))
-                #| Comic.teams_raw.any(Team.name.ilike(keyphrase_filter))
-                #| Comic.locations_raw.any(Location.name.ilike(keyphrase_filter))
-                #| Comic.storyarcs_raw.any(StoryArc.name.ilike(keyphrase_filter))
+                # | Comic.characters_raw.any(Character.name.ilike(keyphrase_filter))
+                # | Comic.teams_raw.any(Team.name.ilike(keyphrase_filter))
+                # | Comic.locations_raw.any(Location.name.ilike(keyphrase_filter))
+                # | Comic.storyarcs_raw.any(StoryArc.name.ilike(keyphrase_filter))
                 | Comic.persons_raw.any(Person.name.ilike(keyphrase_filter)))
 
         def addQueryOnScalar(query, obj_prop, filt):
@@ -364,51 +371,61 @@ class Library:
         query = addQueryOnScalar(query, Comic.path, path_filter)
         query = addQueryOnScalar(query, Comic.folder, folder_filter)
         query = addQueryOnScalar(query, Comic.publisher, publisher)
-        query = addQueryOnList(query, Comic.characters_raw, Character.name,
-                               character)
-        query = addQueryOnList(query, Comic.generictags_raw, GenericTag.name,
-                               tag)
+        query = addQueryOnList(query, Comic.characters_raw, Character.name, character)
+        query = addQueryOnList(query, Comic.generictags_raw, GenericTag.name, tag)
         query = addQueryOnList(query, Comic.teams_raw, Team.name, team)
-        query = addQueryOnList(query, Comic.locations_raw, Location.name,
-                               location)
-        query = addQueryOnList(query, Comic.storyarcs_raw, StoryArc.name,
-                               storyarc)
+        query = addQueryOnList(query, Comic.locations_raw, Location.name, location)
         query = addQueryOnList(query, Comic.genres_raw, Genre.name, genre)
+
+        # query = addQueryOnList(query, Comic.storyarcs_raw, StoryArc.name, storyarc)
+        # Subquery for story arcs is highly inefficient. Instead lets look up the comics and filter on id instead.
+        if storyarc:
+            saquery = self.getSession().query(StoryArc).filter(StoryArc.name.ilike(storyarc))
+            arcs = saquery.all()
+            for arc in arcs:
+                ids = []
+                for comic in arc.comics:
+                    ids.append(comic.id)
+                query = query.filter(Comic.id.in_(ids))
 
         if hasValue(volume):
             try:
-                vol = 0
                 vol = int(volume)
                 query = query.filter(Comic.volume == vol)
-            except:
+            except Exception as e:
+                logging.exception(e)
                 pass
 
         if hasValue(start_filter):
             try:
                 dt = dateutil.parser.parse(start_filter)
                 query = query.filter(Comic.date >= dt)
-            except:
+            except Exception as e:
+                logging.exception(e)
                 pass
 
         if hasValue(end_filter):
             try:
                 dt = dateutil.parser.parse(end_filter)
                 query = query.filter(Comic.date <= dt)
-            except:
+            except Exception as e:
+                logging.exception(e)
                 pass
 
         if hasValue(modified_since):
             try:
                 dt = dateutil.parser.parse(modified_since)
                 query = query.filter(Comic.mod_ts >= dt)
-            except:
+            except Exception as e:
+                logging.exception(e)
                 pass
 
         if hasValue(added_since):
             try:
                 dt = dateutil.parser.parse(added_since)
                 query = query.filter(Comic.added_ts >= dt)
-            except:
+            except Exception as e:
+                logging.exception(e)
                 pass
 
         if hasValue(lastread_since):
@@ -416,7 +433,8 @@ class Library:
                 dt = dateutil.parser.parse(lastread_since)
                 query = query.filter(Comic.lastread_ts >= dt,
                                      Comic.lastread_ts != "")
-            except:
+            except Exception as e:
+                logging.exception(e)
                 pass
 
         order_key = None

@@ -21,12 +21,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import sys
 import getopt
-import platform
-import os
-import traceback
 import logging
+import os
+import platform
+import sys
 
 import comicstreamerlib.csversion
 
@@ -82,6 +81,7 @@ for comics to add to the database (persisted)
 
     def parseCmdLineArgs(self):
 
+        global args, opts
         if platform.system() == "Darwin" and hasattr(
                 sys, "frozen") and sys.frozen == 1:
             # remove the PSN ("process serial number") argument from OS/X

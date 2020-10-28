@@ -578,7 +578,7 @@ def getLanguageDict():
     return lang_dict
 
 def getLanguageFromISO( iso ):
-    if iso == None:
+    if iso is None:
         return None
     else:
         return lang_dict[ iso ]

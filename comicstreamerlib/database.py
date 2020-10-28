@@ -4,33 +4,25 @@
 # Do not change the previous lines. See PEP 8, PEP 263.
 #
 
-from datetime import date, datetime
-import sqlalchemy
 import json
-import pprint
-import uuid
 import logging
 import os
+import uuid
+from datetime import date, datetime
 
-import comicstreamerlib.utils
-from comicstreamerlib.config import ComicStreamerConfig
-from comicstreamerlib.folders import AppFolders
-
+from sqlalchemy import Column, Integer, Float, String, DateTime, LargeBinary, Table, ForeignKey
+from sqlalchemy import create_engine, func
+from sqlalchemy.ext.associationproxy import _AssociationList
+from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.ext.declarative import DeclarativeMeta
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import deferred, RelationshipProperty
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import deferred
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, Float, String, DateTime, LargeBinary, Table, ForeignKey
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy import create_engine, func
-from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.ext.associationproxy import _AssociationList
-from sqlalchemy.orm.properties import \
-                        ColumnProperty,\
-                        CompositeProperty,\
-                        RelationshipProperty
-from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
+from sqlalchemy.orm.properties import ColumnProperty
+
+from comicstreamerlib.folders import AppFolders
 
 SCHEMA_VERSION = 3
 
@@ -50,9 +42,7 @@ def resultSetToDict(rset, listname="aaData", total=None):
     for r in rset:
         l.append(r)
 
-    results_dict = {}
-    results_dict[listname] = l
-    results_dict['page_count'] = len(l)
+    results_dict = {listname: l, 'page_count': len(l)}
     if total is None:
         results_dict['total_count'] = len(l)
     else:
@@ -69,7 +59,7 @@ def alchemy_encoder():
 
             if isinstance(obj, _AssociationList):
                 # Convert association list into python list
-                return ([x.name for x in obj.col])
+                return [x.name for x in obj.col]
 
             if isinstance(obj.__class__, DeclarativeMeta):
                 # don't re-visit self
@@ -80,14 +70,14 @@ def alchemy_encoder():
                 # an SQLAlchemy class
                 fields = {}
                 for field in [
-                        x for x in dir(obj)
-                        if not x.startswith('_') and x != 'metadata'
-                        and not x.endswith('_raw') and x != "persons"
-                        and x != "roles" and x != "issue_num" and x != "file"
-                        and x != "folder" and x != "thumbnail"
+                    x for x in dir(obj)
+                    if not x.startswith('_') and x != 'metadata'
+                       and not x.endswith('_raw') and x != "persons"
+                       and x != "roles" and x != "issue_num" and x != "file"
+                       and x != "folder" and x != "thumbnail"
                 ]:
                     value = obj.__getattribute__(field)
-                    if (isinstance(value, date)):
+                    if isinstance(value, date):
                         value = str(value)
 
                     if value is not None:
@@ -158,8 +148,8 @@ class CreditComparator(RelationshipProperty.Comparator):
 
 class MyComparator(ColumnProperty.Comparator):
     def __eq__(self, other):
-        #return func.lower(self.__clause_element__()) == func.lower(other)
-        #print "-----------ATB------", type(self.__clause_element__()), type(other)
+        # return func.lower(self.__clause_element__()) == func.lower(other)
+        # print "-----------ATB------", type(self.__clause_element__()), type(other)
         # for the children objects, make all equal comparisons be likes
         return self.__clause_element__().ilike(func.lower(str(other)))
 
@@ -195,53 +185,53 @@ class Comic(Base):
     lastread_page = Column(Integer)
     thumbnail = deferred(Column(LargeBinary))
 
-    #hash = Column(String)
+    # hash = Column(String)
     added_ts = Column(
         DateTime,
         default=datetime.utcnow)  # when the comic was added to the DB
     mod_ts = Column(DateTime)  # the last modified date of the file
 
     credits_raw = relationship(
-        'Credit',  #secondary=credits_,
+        'Credit',  # secondary=credits_,
         cascade="all, delete",
-    )  #, backref='comics')
+    )  # , backref='comics')
     characters_raw = relationship(
         'Character',
         secondary=comics_characters_table,
-        cascade="save-update,delete")  #, backref='comics')
+        cascade="save-update,delete")  # , backref='comics')
     teams_raw = relationship(
         'Team', secondary=comics_teams_table,
-        cascade="save-update,delete")  #)#, backref='comics')
+        cascade="save-update,delete")  # )#, backref='comics')
     locations_raw = relationship(
         'Location',
         secondary=comics_locations_table,
-        cascade="save-update,delete")  #, backref='comics')
+        cascade="save-update,delete")  # , backref='comics')
     storyarcs_raw = relationship(
         'StoryArc',
         secondary=comics_storyarcs_table,
-        cascade="save-update,delete")  #, backref='comics')
+        cascade="save-update,delete", backref='comics')
     generictags_raw = relationship(
         'GenericTag',
         secondary=comics_generictags_table,
-        cascade="save-update,delete")  #, backref='comics')
+        cascade="save-update,delete")  # , backref='comics')
     genres_raw = relationship(
         'Genre', secondary=comics_genres_table,
-        cascade="save-update,delete")  #, backref='comics')
+        cascade="save-update,delete")  # , backref='comics')
 
     persons_raw = relationship(
         "Person",
         secondary="join(Credit, Person, Credit.person_id == Person.id)",
         primaryjoin="and_(Comic.id == Credit.comic_id)",
-        #passive_updates=False,
+        # passive_updates=False,
         viewonly=True)
     roles_raw = relationship(
         "Role",
         secondary="join(Credit, Role, Credit.role_id == Role.id)",
         primaryjoin="and_(Comic.id == Credit.comic_id)",
-        #passive_updates=False,
+        # passive_updates=False,
         viewonly=True)
 
-    #credits = association_proxy('credits_raw', 'person_role_dict')
+    # credits = association_proxy('credits_raw', 'person_role_dict')
     characters = association_proxy('characters_raw', 'name')
     teams = association_proxy('teams_raw', 'name')
     locations = association_proxy('locations_raw', 'name')
@@ -251,7 +241,7 @@ class Comic(Base):
     roles = association_proxy('roles_raw', 'name')
     genres = association_proxy('genres_raw', 'name')
 
-    #bookmark = relationship("Bookmark",  backref="comic", lazy="dynamic")  #uselist=False,
+    # bookmark = relationship("Bookmark",  backref="comic", lazy="dynamic")  #uselist=False,
 
     def __repr__(self):
         out = u"<Comic(id={0}, path={1},\n series={2}, issue={3}, year={4} pages={5}\n{6}".format(
@@ -276,34 +266,34 @@ class Comic(Base):
 
 class Credit(Base):
     __tablename__ = 'credits'
-    #__table_args__ = {'extend_existing': True}
+    # __table_args__ = {'extend_existing': True}
     comic_id = Column(Integer, ForeignKey('comics.id'), primary_key=True)
     role_id = Column(Integer, ForeignKey('roles.id'), primary_key=True)
     person_id = Column(Integer, ForeignKey('persons.id'), primary_key=True)
 
-    #bidirectional attribute/collection of "comic"/"credits"
-    #comic = relationship(Comic,
+    # bidirectional attribute/collection of "comic"/"credits"
+    # comic = relationship(Comic,
     #            backref=backref("credits_backref_raw"),
     #                            #cascade="all, delete-orphan")
     #        )
 
     person = relationship(
-        "Person", cascade="all, delete")  #, backref='credits')
-    role = relationship("Role", cascade="all, delete")  #, backref='credits')
+        "Person", cascade="all, delete")  # , backref='credits')
+    role = relationship("Role", cascade="all, delete")  # , backref='credits')
 
     def __init__(self, person=None, role=None):
         self.person = person
         self.role = role
 
-    #@property
-    #def person_role_tuple(self):
+    # @property
+    # def person_role_tuple(self):
     #   return (self.person.name, self.role.name)
 
-    #@property
-    #def person_role_dict(self):
+    # @property
+    # def person_role_dict(self):
     #   return { self.role.name : [self.person.name] }
 
-    #def __repr__(self):
+    # def __repr__(self):
     #   return u"<Credit(person={0},role={1})>".format(self.person_role_tuple[1], self.person_role_tuple[0])
 
 
@@ -324,10 +314,10 @@ class Person(Base):
 class Character(Base):
     __tablename__ = "characters"
     id = Column(Integer, primary_key=True)
-    #name = Column(String, unique=True)
+    # name = Column(String, unique=True)
     name = ColumnProperty(
         Column('name', String, unique=True),
-        #comparator_factory=MyComparator
+        # comparator_factory=MyComparator
     )
 
     def __repr__(self):
@@ -437,7 +427,7 @@ class SchemaVersionException(Exception):
     pass
 
 
-class DataManager():
+class DataManager:
     def __init__(self):
         self.dbfile = os.path.join(AppFolders.appData(), "comicdb.sqlite")
 
