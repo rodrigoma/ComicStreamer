@@ -95,10 +95,9 @@ def alchemy_encoder():
 
 # Junction table
 comics_characters_table = Table('comics_characters', Base.metadata,
-                                Column('comic_id', Integer,
-                                       ForeignKey('comics.id')),
-                                Column('character_id', Integer,
-                                       ForeignKey('characters.id')))
+                                Column('comic_id', Integer, ForeignKey('comics.id')),
+                                Column('character_id', Integer, ForeignKey('characters.id'))
+                                )
 
 # Junction table
 comics_teams_table = Table('comics_teams', Base.metadata,
@@ -195,41 +194,28 @@ class Comic(Base):
         'Credit',  # secondary=credits_,
         cascade="all, delete",
     )  # , backref='comics')
-    characters_raw = relationship(
-        'Character',
-        secondary=comics_characters_table,
-        cascade="save-update,delete")  # , backref='comics')
-    teams_raw = relationship(
-        'Team', secondary=comics_teams_table,
-        cascade="save-update,delete")  # )#, backref='comics')
-    locations_raw = relationship(
-        'Location',
-        secondary=comics_locations_table,
-        cascade="save-update,delete")  # , backref='comics')
-    storyarcs_raw = relationship(
-        'StoryArc',
-        secondary=comics_storyarcs_table,
-        cascade="save-update,delete", backref='comics')
-    generictags_raw = relationship(
-        'GenericTag',
-        secondary=comics_generictags_table,
-        cascade="save-update,delete")  # , backref='comics')
-    genres_raw = relationship(
-        'Genre', secondary=comics_genres_table,
-        cascade="save-update,delete")  # , backref='comics')
+    characters_raw = relationship('Character', secondary=comics_characters_table,
+                                  cascade="save-update,all,delete", back_populates='comics')
+    teams_raw = relationship('Team', secondary=comics_teams_table, cascade="save-update,delete")
+    locations_raw = relationship('Location', secondary=comics_locations_table,
+                                 cascade="save-update,all,delete", back_populates='comics')
+    storyarcs_raw = relationship('StoryArc', secondary=comics_storyarcs_table,
+                                 cascade="save-update,all,delete", back_populates='comics')
+    generictags_raw = relationship('GenericTag', secondary=comics_generictags_table,
+                                   cascade="save-update,all,delete", back_populates='comics')
+    genres_raw = relationship('Genre', secondary=comics_genres_table,
+                              cascade="save-update,all,delete", back_populates='comics')
 
-    persons_raw = relationship(
-        "Person",
-        secondary="join(Credit, Person, Credit.person_id == Person.id)",
-        primaryjoin="and_(Comic.id == Credit.comic_id)",
-        # passive_updates=False,
-        viewonly=True)
-    roles_raw = relationship(
-        "Role",
-        secondary="join(Credit, Role, Credit.role_id == Role.id)",
-        primaryjoin="and_(Comic.id == Credit.comic_id)",
-        # passive_updates=False,
-        viewonly=True)
+    persons_raw = relationship("Person",
+                               secondary="join(Credit, Person, Credit.person_id == Person.id)",
+                               primaryjoin="and_(Comic.id == Credit.comic_id)",
+                               # passive_updates=False,
+                               viewonly=True)
+    roles_raw = relationship("Role",
+                             secondary="join(Credit, Role, Credit.role_id == Role.id)",
+                             primaryjoin="and_(Comic.id == Credit.comic_id)",
+                             # passive_updates=False,
+                             viewonly=True)
 
     # credits = association_proxy('credits_raw', 'person_role_dict')
     characters = association_proxy('characters_raw', 'name')
@@ -277,8 +263,7 @@ class Credit(Base):
     #                            #cascade="all, delete-orphan")
     #        )
 
-    person = relationship(
-        "Person", cascade="all, delete")  # , backref='credits')
+    person = relationship("Person", cascade="all, delete")  # , backref='credits')
     role = relationship("Role", cascade="all, delete")  # , backref='credits')
 
     def __init__(self, person=None, role=None):
@@ -319,6 +304,7 @@ class Character(Base):
         Column('name', String, unique=True),
         # comparator_factory=MyComparator
     )
+    comics = relationship('Comic', secondary=comics_characters_table, back_populates='characters_raw')
 
     def __repr__(self):
         out = u"<Character(id={0},name='{1}')>".format(self.id, self.name)
@@ -328,22 +314,21 @@ class Character(Base):
 class Team(Base):
     __tablename__ = "teams"
     id = Column(Integer, primary_key=True)
-    name = ColumnProperty(
-        Column('name', String, unique=True), comparator_factory=MyComparator)
-
+    name = ColumnProperty(Column('name', String, unique=True), comparator_factory=MyComparator)
+    comics = relationship('Comic', secondary=comics_teams_table, back_populates='teams_raw')
 
 class Location(Base):
     __tablename__ = "locations"
     id = Column(Integer, primary_key=True)
-    name = ColumnProperty(
-        Column('name', String, unique=True), comparator_factory=MyComparator)
-
+    name = ColumnProperty(Column('name', String, unique=True), comparator_factory=MyComparator)
+    comics = relationship('Comic', secondary=comics_locations_table, back_populates='locations_raw')
 
 class StoryArc(Base):
     __tablename__ = "storyarcs"
     id = Column(Integer, primary_key=True)
     name = ColumnProperty(
         Column('name', String, unique=True), comparator_factory=MyComparator)
+    comics = relationship('Comic', secondary=comics_storyarcs_table, back_populates='storyarcs_raw')
 
 
 class GenericTag(Base):
@@ -351,13 +336,14 @@ class GenericTag(Base):
     id = Column(Integer, primary_key=True)
     name = ColumnProperty(
         Column('name', String, unique=True), comparator_factory=MyComparator)
+    comics = relationship('Comic', secondary=comics_generictags_table, back_populates='generictags_raw')
 
 
 class Genre(Base):
     __tablename__ = "genres"
     id = Column(Integer, primary_key=True)
-    name = ColumnProperty(
-        Column('name', String, unique=True), comparator_factory=MyComparator)
+    name = ColumnProperty(Column('name', String, unique=True), comparator_factory=MyComparator)
+    comics = relationship('Comic', secondary=comics_genres_table, back_populates='genres_raw')
 
 
 class DeletedComic(Base):

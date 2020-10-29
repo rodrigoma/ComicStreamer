@@ -222,27 +222,37 @@ class Library:
         return self.namedEntities[key]
 
     def addComics(self, comic_list):
-        for comic in comic_list:
-            self.getSession().add(comic)
-        if len(comic_list) > 0:
-            self._dbUpdated()
-        self.getSession().commit()
+        s =  self.getSession()
+        try:
+            for comic in comic_list:
+                s.add(comic)
+            if len(comic_list) > 0:
+                self._dbUpdated()
+            s.commit()
+        except Exception as e:
+            logging.exception(e)
+            s.rollback()
+            raise
 
     def deleteComics(self, comic_id_list):
         s = self.getSession()
-        for comic_id in comic_id_list:
-            deleted = DeletedComic()
-            deleted.comic_id = int(comic_id)
-            s.add(deleted)
-            s.delete(s.query(Comic).get(comic_id))
-        if len(comic_id_list) > 0:
-            self._dbUpdated()
-        s.commit()
+        try:
+            for comic_id in comic_id_list:
+                deleted = DeletedComic()
+                deleted.comic_id = int(comic_id)
+                s.add(deleted)
+                s.delete(s.query(Comic).get(comic_id))
+            if len(comic_id_list) > 0:
+                self._dbUpdated()
+            s.commit()
+        except Exception as e:
+            logging.exception(e)
+            s.rollback()
+            raise
 
     def _dbUpdated(self):
         """Updates DatabaseInfo status"""
-        self.getSession().query(
-            DatabaseInfo).first().last_updated = datetime.utcnow()
+        self.getSession().query(DatabaseInfo).first().last_updated = datetime.utcnow()
 
     def list(self, criteria=None, paging=None):
         if criteria is None:
