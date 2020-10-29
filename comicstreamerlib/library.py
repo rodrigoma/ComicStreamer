@@ -11,7 +11,6 @@ from datetime import datetime
 import dateutil
 from sqlalchemy import func, distinct
 from sqlalchemy.orm import subqueryload
-from sqlalchemy.orm.exc import StaleDataError
 
 import comicstreamerlib.utils
 from comicapi.comicarchive import ComicArchive
@@ -223,15 +222,13 @@ class Library:
         return self.namedEntities[key]
 
     def addComics(self, comic_list):
-        s =  self.getSession()
+        s = self.getSession()
         try:
             for comic in comic_list:
                 s.add(comic)
             if len(comic_list) > 0:
                 self._dbUpdated()
             s.commit()
-        except StaleDataError:
-            pass
         except Exception as e:
             logging.exception(e)
             s.rollback()
@@ -244,12 +241,11 @@ class Library:
                 deleted = DeletedComic()
                 deleted.comic_id = int(comic_id)
                 s.add(deleted)
-                s.delete(s.query(Comic).get(comic_id))
+
             if len(comic_id_list) > 0:
+                s.query(Comic).filter(Comic.id in comic_id_list).delete()
                 self._dbUpdated()
             s.commit()
-        except StaleDataError:
-            pass
         except Exception as e:
             logging.exception(e)
             s.rollback()

@@ -101,30 +101,27 @@ comics_characters_table = Table('comics_characters', Base.metadata,
 
 # Junction table
 comics_teams_table = Table('comics_teams', Base.metadata,
-                           Column('comic_id', Integer,
-                                  ForeignKey('comics.id')),
-                           Column('team_id', Integer, ForeignKey('teams.id')))
+                           Column('comic_id', Integer, ForeignKey('comics.id')),
+                           Column('team_id', Integer, ForeignKey('teams.id'))
+                           )
 
 # Junction table
 comics_locations_table = Table('comics_locations', Base.metadata,
-                               Column('comic_id', Integer,
-                                      ForeignKey('comics.id')),
-                               Column('location_id', Integer,
-                                      ForeignKey('locations.id')))
+                               Column('comic_id', Integer, ForeignKey('comics.id')),
+                               Column('location_id', Integer, ForeignKey('locations.id'))
+                               )
 
 # Junction table
 comics_storyarcs_table = Table('comics_storyarcs', Base.metadata,
-                               Column('comic_id', Integer,
-                                      ForeignKey('comics.id')),
-                               Column('storyarc_id', Integer,
-                                      ForeignKey('storyarcs.id')))
+                               Column('comic_id', Integer, ForeignKey('comics.id')),
+                               Column('storyarc_id', Integer, ForeignKey('storyarcs.id'))
+                               )
 
 # Junction table
 comics_generictags_table = Table('comics_generictags', Base.metadata,
-                                 Column('comic_id', Integer,
-                                        ForeignKey('comics.id')),
-                                 Column('generictags_id', Integer,
-                                        ForeignKey('generictags.id')))
+                                 Column('comic_id', Integer, ForeignKey('comics.id')),
+                                 Column('generictags_id', Integer, ForeignKey('generictags.id'))
+                                 )
 
 # Junction table
 comics_genres_table = Table(
@@ -164,9 +161,7 @@ class Comic(Base):
     series = Column(String)
     issue = Column(String)
     issue_num = Column(Float)
-    date = Column(
-        DateTime
-    )  # will be a composite of month,year,day for sorting/filtering
+    date = Column(DateTime)  # will be a composite of month,year,day for sorting/filtering
     day = Column(Integer)
     month = Column(Integer)
     year = Column(Integer)
@@ -185,26 +180,22 @@ class Comic(Base):
     thumbnail = deferred(Column(LargeBinary))
 
     # hash = Column(String)
-    added_ts = Column(
-        DateTime,
-        default=datetime.utcnow)  # when the comic was added to the DB
+    added_ts = Column(DateTime, default=datetime.utcnow)  # when the comic was added to the DB
     mod_ts = Column(DateTime)  # the last modified date of the file
 
-    credits_raw = relationship(
-        'Credit',  # secondary=credits_,
-        cascade="all, delete",
-    )  # , backref='comics')
+    credits_raw = relationship('Credit', cascade="all,delete")
     characters_raw = relationship('Character', secondary=comics_characters_table,
-                                  cascade="save-update,all,delete", back_populates='comics')
-    teams_raw = relationship('Team', secondary=comics_teams_table, cascade="save-update,delete")
+                                  cascade="save-update, all, delete", back_populates='comics')
+    teams_raw = relationship('Team', secondary=comics_teams_table,
+                             cascade="save-update, all, delete", back_populates='comics')
     locations_raw = relationship('Location', secondary=comics_locations_table,
-                                 cascade="save-update,all,delete", back_populates='comics')
+                                 cascade="save-update, all, delete", back_populates='comics')
     storyarcs_raw = relationship('StoryArc', secondary=comics_storyarcs_table,
-                                 cascade="save-update,all,delete", back_populates='comics')
+                                 cascade="save-update, all, delete", back_populates='comics')
     generictags_raw = relationship('GenericTag', secondary=comics_generictags_table,
-                                   cascade="save-update,all,delete", back_populates='comics')
+                                   cascade="save-update, all, delete", back_populates='comics')
     genres_raw = relationship('Genre', secondary=comics_genres_table,
-                              cascade="save-update,all,delete", back_populates='comics')
+                              cascade="save-update, all, delete", back_populates='comics')
 
     persons_raw = relationship("Person",
                                secondary="join(Credit, Person, Credit.person_id == Person.id)",
@@ -256,12 +247,6 @@ class Credit(Base):
     comic_id = Column(Integer, ForeignKey('comics.id'), primary_key=True)
     role_id = Column(Integer, ForeignKey('roles.id'), primary_key=True)
     person_id = Column(Integer, ForeignKey('persons.id'), primary_key=True)
-
-    # bidirectional attribute/collection of "comic"/"credits"
-    # comic = relationship(Comic,
-    #            backref=backref("credits_backref_raw"),
-    #                            #cascade="all, delete-orphan")
-    #        )
 
     person = relationship("Person", cascade="all, delete")  # , backref='credits')
     role = relationship("Role", cascade="all, delete")  # , backref='credits')
@@ -317,11 +302,13 @@ class Team(Base):
     name = ColumnProperty(Column('name', String, unique=True), comparator_factory=MyComparator)
     comics = relationship('Comic', secondary=comics_teams_table, back_populates='teams_raw')
 
+
 class Location(Base):
     __tablename__ = "locations"
     id = Column(Integer, primary_key=True)
     name = ColumnProperty(Column('name', String, unique=True), comparator_factory=MyComparator)
     comics = relationship('Comic', secondary=comics_locations_table, back_populates='locations_raw')
+
 
 class StoryArc(Base):
     __tablename__ = "storyarcs"
