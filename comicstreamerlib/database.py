@@ -438,8 +438,7 @@ class DataManager:
             schemainfo = SchemaInfo()
             schemainfo.schema_version = SCHEMA_VERSION
             session.add(schemainfo)
-            logging.debug("Setting scheme version: {}".format(
-                schemainfo.schema_version))
+            logging.debug("Setting scheme version: {}".format(schemainfo.schema_version))
             session.commit()
         else:
             if results.schema_version != SCHEMA_VERSION:

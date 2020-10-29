@@ -277,8 +277,9 @@ class Monitor:
                 if md is not None:
                     md_list.append(md)
                 self.setStatusDetailOnly(
-                    u"Monitor: {0} files: {1} scanned, {2} added to library...".
-                        format(len(filelist), self.read_count, self.add_count))
+                    u"Monitor: {0} files: {1} scanned, {2} added to library...".format(
+                        len(filelist), self.read_count, self.add_count)
+                )
                 if self.quit:
                     self.setStatusDetail(u"Monitor: halting scan!")
                     return
