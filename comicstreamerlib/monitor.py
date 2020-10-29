@@ -217,6 +217,8 @@ class Monitor:
         self.statusdetail = detail
 
     def commitMetadataList(self, md_list):
+        self.library.create_meta_objs(md_list)
+
         comics = []
         for md in md_list:
             self.add_count += 1
@@ -227,6 +229,7 @@ class Monitor:
                 return
 
         self.library.addComics(comics)
+
 
     def createAddRemoveLists(self, dirs):
         ix = {}

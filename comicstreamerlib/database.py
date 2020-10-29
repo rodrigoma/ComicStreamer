@@ -10,7 +10,7 @@ import os
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Column, Integer, Float, String, DateTime, LargeBinary, Table, ForeignKey
+from sqlalchemy import Column, Integer, Float, String, DateTime, LargeBinary, Table, ForeignKey, UniqueConstraint
 from sqlalchemy import create_engine, func
 from sqlalchemy.ext.associationproxy import _AssociationList
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -96,38 +96,45 @@ def alchemy_encoder():
 # Junction table
 comics_characters_table = Table('comics_characters', Base.metadata,
                                 Column('comic_id', Integer, ForeignKey('comics.id')),
-                                Column('character_id', Integer, ForeignKey('characters.id'))
+                                Column('character_id', Integer, ForeignKey('characters.id')),
+                                UniqueConstraint('comic_id', 'character_id', name='UC_comic_id_character_id'),
                                 )
 
 # Junction table
 comics_teams_table = Table('comics_teams', Base.metadata,
                            Column('comic_id', Integer, ForeignKey('comics.id')),
-                           Column('team_id', Integer, ForeignKey('teams.id'))
+                           Column('team_id', Integer, ForeignKey('teams.id')),
+                           UniqueConstraint('comic_id', 'team_id', name='UC_comic_id_team_id'),
                            )
 
 # Junction table
 comics_locations_table = Table('comics_locations', Base.metadata,
                                Column('comic_id', Integer, ForeignKey('comics.id')),
-                               Column('location_id', Integer, ForeignKey('locations.id'))
+                               Column('location_id', Integer, ForeignKey('locations.id')),
+                               UniqueConstraint('comic_id', 'location_id', name='UC_comic_id_location_id'),
                                )
 
 # Junction table
 comics_storyarcs_table = Table('comics_storyarcs', Base.metadata,
                                Column('comic_id', Integer, ForeignKey('comics.id')),
-                               Column('storyarc_id', Integer, ForeignKey('storyarcs.id'))
+                               Column('storyarc_id', Integer, ForeignKey('storyarcs.id')),
+                               UniqueConstraint('comic_id', 'storyarc_id', name='UC_comic_id_storyarc_id'),
                                )
 
 # Junction table
 comics_generictags_table = Table('comics_generictags', Base.metadata,
                                  Column('comic_id', Integer, ForeignKey('comics.id')),
-                                 Column('generictags_id', Integer, ForeignKey('generictags.id'))
+                                 Column('generictags_id', Integer, ForeignKey('generictags.id')),
+                                 UniqueConstraint('comic_id', 'generictags_id', name='UC_comic_id_generictags_id'),
                                  )
 
 # Junction table
-comics_genres_table = Table(
-    'comics_genres', Base.metadata,
-    Column('comic_id', Integer, ForeignKey('comics.id')),
-    Column('genre_id', Integer, ForeignKey('genres.id')))
+comics_genres_table = Table('comics_genres', Base.metadata,
+                            Column('comic_id', Integer, ForeignKey('comics.id')),
+                            Column('genre_id', Integer, ForeignKey('genres.id')),
+                            UniqueConstraint('comic_id', 'genre_id', name='UC_comic_id_genre_id'),
+                            )
+
 """
 # Junction table
 readinglists_comics_table = Table('readinglists_comics', Base.metadata,

@@ -170,44 +170,94 @@ class Library:
             if md.webLink is not None:
                 comic.weblink = str(md.webLink)
 
-        if md.characters is not None:
-            for c in list(set(md.characters.split(","))):
-                character = self.getNamedEntity(Character, c.strip())
-                comic.characters_raw.append(character)
+        self.update_comic_meta(comic, md)
 
-        if md.teams is not None:
-            for t in list(set(md.teams.split(","))):
-                team = self.getNamedEntity(Team, t.strip())
-                comic.teams_raw.append(team)
+        return comic
 
-        if md.locations is not None:
-            for l in list(set(md.locations.split(","))):
-                location = self.getNamedEntity(Location, l.strip())
-                comic.locations_raw.append(location)
+    # Will update the comic object with relationship objects based on metadata
+    def update_comic_meta(self, comic, md):
 
-        if md.storyArc is not None:
-            for sa in list(set(md.storyArc.split(","))):
-                storyarc = self.getNamedEntity(StoryArc, sa.strip())
-                comic.storyarcs_raw.append(storyarc)
+        def unique_md_list(md_string):
+            l = []
+            if md_string is not None:
+                for c in list(set(md_string.split(","))):
+                    _c = c.strip()
+                    if _c not in l:
+                        l.append(_c)
+            return l
 
-        if md.genre is not None:
-            for g in list(set(md.genre.split(","))):
-                genre = self.getNamedEntity(Genre, g.strip())
-                comic.genres_raw.append(genre)
+        characters = unique_md_list(md.characters)
+        teams = unique_md_list(md.teams)
+        locations = unique_md_list(md.locations)
+        story_arcs = unique_md_list(md.storyArc)
+        genres = unique_md_list(md.genre)
+        tags = md.tags
 
-        if md.tags is not None:
-            for gt in list(set(md.tags)):
-                generictag = self.getNamedEntity(GenericTag, gt.strip())
-                comic.generictags_raw.append(generictag)
+        for obj in characters:
+            ent = self.getNamedEntity(Character, obj)
+            comic.characters_raw.append(ent)
+        for obj in teams:
+            ent = self.getNamedEntity(Team, obj)
+            comic.teams_raw.append(ent)
+        for obj in locations:
+            ent = self.getNamedEntity(Location, obj)
+            comic.locations_raw.append(ent)
+        for obj in story_arcs:
+            ent = self.getNamedEntity(StoryArc, obj)
+            comic.storyarcs_raw.append(ent)
+        for obj in genres:
+            ent = self.getNamedEntity(Genre, obj)
+            comic.genres_raw.append(ent)
+        for obj in tags:
+            ent = self.getNamedEntity(GenericTag, obj)
+            comic.generictags_raw.append(ent)
 
         if md.credits is not None:
             for credit in md.credits:
-                role = self.getNamedEntity(Role,
-                                           credit['role'].lower().strip())
+                role = self.getNamedEntity(Role, credit['role'].lower().strip())
                 person = self.getNamedEntity(Person, credit['person'].strip())
                 comic.credits_raw.append(Credit(person, role))
 
-        return comic
+    def get_or_create_meta_objs(self, cls, name, session):
+        obj = self.getSession().query(cls).filter(cls.name == name).first()
+        if obj is None:
+            session.add(cls(name=name))
+
+    # Will cycle through all metadata objects creating any non existing values. This is used before comic creation
+    # to ensure there are no duplicates and IDs can be looked up on creation time
+    def create_meta_objs(self, mds):
+        session = self.getSession()
+
+        try:
+            for md in mds:
+                if md.characters is not None:
+                    for c in list(set(md.characters.split(","))):
+                        self.get_or_create_meta_objs(Character, c.strip(), session)
+                if md.teams is not None:
+                    for t in list(set(md.teams.split(","))):
+                        self.get_or_create_meta_objs(Team, t.strip(), session)
+                if md.locations is not None:
+                    for l in list(set(md.locations.split(","))):
+                        self.get_or_create_meta_objs(Location, l.strip(), session)
+                if md.storyArc is not None:
+                    for sa in list(set(md.storyArc.split(","))):
+                        self.get_or_create_meta_objs(StoryArc, sa.strip(), session)
+                if md.genre is not None:
+                    for g in list(set(md.genre.split(","))):
+                        self.get_or_create_meta_objs(Genre, g.strip(), session)
+                if md.tags is not None:
+                    for gt in list(set(md.tags)):
+                        self.get_or_create_meta_objs(GenericTag, gt.strip(), session)
+                if md.credits is not None:
+                    for credit in md.credits:
+                        self.get_or_create_meta_objs(Role, credit['role'].lower().strip(), session)
+                        self.get_or_create_meta_objs(Person, credit['person'].strip(), session)
+
+            session.commit()
+        except Exception as e:
+            logging.exception(e)
+            session.rollback()
+            raise
 
     def getNamedEntity(self, cls, name):
         """Gets related entities such as Characters, Persons etc by name"""
@@ -234,16 +284,29 @@ class Library:
             s.rollback()
             raise
 
+    def update_comics(self, comic_list):
+        s = self.getSession()
+        try:
+            for comic in comic_list:
+                self.update_comic_meta(comic[0], comic[1])
+            if len(comic_list) > 0:
+                self._dbUpdated()
+            s.commit()
+        except Exception as e:
+            logging.exception(e)
+            s.rollback()
+            raise
+
     def deleteComics(self, comic_id_list):
         s = self.getSession()
         try:
-            for comic_id in comic_id_list:
+            for comic in s.query(Comic).filter(Comic.id.in_(comic_id_list)).all():
                 deleted = DeletedComic()
-                deleted.comic_id = int(comic_id)
+                deleted.comic_id = comic.id
                 s.add(deleted)
+                s.delete(comic)
 
             if len(comic_id_list) > 0:
-                s.query(Comic).filter(Comic.id.in_(comic_id_list)).delete(synchronize_session='fetch')
                 self._dbUpdated()
             s.commit()
         except Exception as e:
