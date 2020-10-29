@@ -89,6 +89,10 @@ class Monitor:
         except Exception as e:
             # logging.exception(e)
             msg = None
+
+        if msg is None:
+            return
+
         # dispatch messages
         if msg == "scan":
             try:
@@ -104,7 +108,7 @@ class Monitor:
     def scan(self):
         self.queue.put(("scan", None))
 
-    def handleSingleEvent(self):
+    def handleSingleEvent(self, event):
         # events may happen in clumps.  start a timer
         # to defer processing.  if the timer is already going,
         # it will be canceled
