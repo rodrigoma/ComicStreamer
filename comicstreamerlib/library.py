@@ -243,7 +243,7 @@ class Library:
                 s.add(deleted)
 
             if len(comic_id_list) > 0:
-                s.query(Comic).filter(Comic.id in comic_id_list).delete()
+                s.query(Comic).filter(Comic.id.in_(comic_id_list)).delete(synchronize_session='fetch')
                 self._dbUpdated()
             s.commit()
         except Exception as e:
