@@ -1,5 +1,21 @@
 # ComicStreamer
 
+## rodrigoma fork
+
+### January 3 2021
+
+- Added Dockerfile
+
+```
+docker build -t rodrigoma/comicstreamer:0.0.8-buster .
+```
+```
+docker run -d --name comicstreamer -p 32500:32500 \
+	-v <CONFIG_PATH>:/config \
+	-v <DATA_PATH>:/data \
+	rodrigoma/comicstreamer:0.0.8-buster
+```
+
 ## Work on this fork
 
 ### March 2 2019
